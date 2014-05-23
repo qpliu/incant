@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string-array name="initial_story_list">
+    <!-- Each story has 4 items:
+         * short name
+         * longer description
+         * download url
+         * zip file entry name (empty if not in a zip file)
+      -->
+
+    <item>Adventure</item>
+    <item>Adventure aka Colossal Cave, the original 350 points version ported to Inform by Graham Nelson, based on Dave Baggett\'s TADS reconstruction &quot;Collossal Cave Revisited&quot;. Release 9 /Serial number 060321</item>
+    <item>http://www.ifarchive.org/if-archive/games/zcode/Advent.z5</item>
+    <item/>
+
+    <item>Zork I</item>
+    <item>Discover the &quot;Great Underground Empire&quot; and find out how gruesome a &quot;Grue&quot; is!</item>
+    <item>http://www.infocom-if.org/downloads/zork1.zip</item>
+    <item>DATA/ZORK1.DAT</item>
+
+    <item>Bronze</item>
+    <item>Bronze, the demonstration game that accompanies Inform 7, by Emily Short. Release 11 / Serial number 060503</item>
+    <item>http://www.ifarchive.org/if-archive/games/zcode/Bronze.zblorb</item>
+    <item/>
+  </string-array>
+</resources>
