@@ -10,8 +10,9 @@ import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
-import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -39,6 +40,9 @@ public class Play extends Activity {
     private SpannableStringBuilder screenBuffer;
     private int screenWidth;
     private int screenHeight;
+    private int inputtextColor;
+    private int textColor;
+    private int backgroundColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +63,9 @@ public class Play extends Activity {
                 }
             }
         });
+        inputtextColor = getResources().getColor(R.color.inputtext);
+        textColor = getResources().getColor(R.color.text);
+        backgroundColor = getResources().getColor(R.color.background);
     }
 
     @Override
@@ -305,6 +312,10 @@ public class Play extends Activity {
             }
             int start = startX + (startY+ymin[currentWindow])*(screenWidth+1);
             int end = x[currentWindow] + (y[currentWindow]+ymin[currentWindow])*(screenWidth+1);
+            if ((textStyle & 1) != 0) {
+                screenBuffer.setSpan(new ForegroundColorSpan(backgroundColor), start, end, 0);
+                screenBuffer.setSpan(new BackgroundColorSpan(textColor), start, end, 0);
+            }
             switch (textStyle & 134) {
             case 2:
                 screenBuffer.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
@@ -316,7 +327,7 @@ public class Play extends Activity {
                 screenBuffer.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), start, end, 0);
                 break;
             case 128:
-                screenBuffer.setSpan(new UnderlineSpan(), start, end, 0);
+                screenBuffer.setSpan(new ForegroundColorSpan(inputtextColor), start, end, 0);
             default:
             }
         }
@@ -456,6 +467,8 @@ public class Play extends Activity {
             if (numbers.length() < screenWidth) {
                 screenBuffer.replace(screenWidth - numbers.length(), screenWidth, numbers);
             }
+            screenBuffer.setSpan(new ForegroundColorSpan(backgroundColor), 0, screenWidth, 0);
+            screenBuffer.setSpan(new BackgroundColorSpan(textColor), 0, screenWidth, 0);
         }
 
         @Override
