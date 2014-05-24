@@ -274,6 +274,11 @@ public class Play extends Activity {
         private final Runnable refreshScreen = new Runnable() {
             @Override
             public void run() {
+                for (Object o : screenBuffer.getSpans(0, screenBuffer.length(), Object.class)) {
+                    if (screenBuffer.getSpanStart(o) >= screenBuffer.getSpanEnd(o)) {
+                        screenBuffer.removeSpan(o);
+                    }
+                }
                 textView.setText(screenBuffer);
             }
         };
@@ -312,6 +317,11 @@ public class Play extends Activity {
             }
             int start = startX + (startY+ymin[currentWindow])*(screenWidth+1);
             int end = x[currentWindow] + (y[currentWindow]+ymin[currentWindow])*(screenWidth+1);
+            for (Object o : screenBuffer.getSpans(start, end, Object.class)) {
+                if (screenBuffer.getSpanStart(o) >= start && screenBuffer.getSpanEnd(o) <= end) {
+                    screenBuffer.removeSpan(o);
+                }
+            }
             if ((textStyle & 1) != 0) {
                 screenBuffer.setSpan(new ForegroundColorSpan(backgroundColor), start, end, 0);
                 screenBuffer.setSpan(new BackgroundColorSpan(textColor), start, end, 0);
