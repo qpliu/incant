@@ -4,3 +4,14 @@ using Android's speech recognition and text-to-speech.
 The Z-Machine interpreter is taken from Zax: https://github.com/mattkimmel/zax
 
 Incant is distributed under the MIT license.
+
+The Android SDK (https://developer.android.com/sdk/index.html) is needed
+to build.
+
+To set up the Android project for android-19 (replace with the desired
+target if needed):
+ $ android update project -p . -t android-19
+
+For a debug build and install:
+ $ ant debug
+ $ ant installd
