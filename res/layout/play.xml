@@ -13,14 +13,8 @@
      />
   <TextView  
      android:layout_width="fill_parent" 
-     android:layout_height="wrap_content" 
-     android:id="@+id/status"
-     android:typeface="monospace"
-     />
-  <TextView  
-     android:layout_width="fill_parent" 
-     android:layout_height="wrap_content" 
-     android:id="@+id/main"
+     android:layout_height="fill_parent" 
+     android:id="@+id/text"
      android:typeface="monospace"
      />
 </LinearLayout>

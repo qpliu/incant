@@ -2,12 +2,16 @@ package com.yrek.incant;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.text.SpannableStringBuilder;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -28,13 +32,13 @@ public class Play extends Activity {
 
     private Story story;
     private ZCPU zcpu;
-    private TextView statusView;
-    private TextView mainView;
+    private TextView textView;
     private Thread zthread;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
-    private int screenWidth = 40;
-    private int screenHeight = 25;
+    private SpannableStringBuilder screenBuffer;
+    private int screenWidth;
+    private int screenHeight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,15 +46,25 @@ public class Play extends Activity {
         setContentView(R.layout.play);
         story = (Story) getIntent().getSerializableExtra(STORY);
         ((TextView) findViewById(R.id.name)).setText(story.getName());
-        statusView = (TextView) findViewById(R.id.status);
-        mainView = (TextView) findViewById(R.id.main);
+        textView = (TextView) findViewById(R.id.text);
+        screenBuffer = new SpannableStringBuilder();
+        screenWidth = 0;
+        screenHeight = 0;
+        textView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                synchronized (screenBuffer) {
+                    screenWidth = (right - left) / 18; //... figure this out
+                    screenHeight = (bottom - top) / textView.getLineHeight();
+                    screenBuffer.notify();
+                }
+            }
+        });
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         zcpu = new ZCPU(zui);
-        zcpu.initialize(story.getFile(this).getPath());
         recognizerReady = true;
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
         speechRecognizer.setRecognitionListener(recognitionListener);
@@ -86,11 +100,19 @@ public class Play extends Activity {
             zthread = new Thread("ZCPU") {
                 @Override public void run() {
                     try {
+                        synchronized (screenBuffer) {
+                            while (screenWidth == 0) {
+                                screenBuffer.wait();
+                            }
+                        }
+                        Log.d(TAG,"ZCPU:screenWidth="+screenWidth+",screenHeight="+screenHeight);
+                        zcpu.initialize(story.getFile(Play.this).getPath());
                         zcpu.run();
+                    } catch (InterruptedException e) {
                     } catch (ZQuitException e) {
                     }
                     zthread = null;
-                    statusView.post(new Runnable() {
+                    textView.post(new Runnable() {
                         @Override public void run() {
                             finish();
                         }
@@ -104,95 +126,12 @@ public class Play extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        screenBuffer.clear();
+        screenWidth = 0;
+        screenHeight = 0;
     }
 
     private class ZQuitException extends RuntimeException {}
-
-    private class Window {
-        private char[][] buffer;
-        private int x;
-        private int y;
-        private TextView textView;
-
-        Window(int width, int height, TextView textView) {
-            this.textView = textView;
-            buffer = new char[height][width];
-            reset();
-        }
-
-        void updateView() {
-            StringBuffer sb = new StringBuffer();
-            for (char[] line : buffer) {
-                if (sb.length() > 0) {
-                    sb.append('\n');
-                }
-                sb.append(line);
-            }
-            final String text = sb.toString();
-            textView.post(new Runnable() {
-                @Override public void run() {
-                    textView.setVisibility(View.VISIBLE);
-                    textView.setText(text);
-                }
-            });
-        }
-
-        void scroll(int n) {
-            for (int y = n; y < buffer.length; y++) {
-                for (int x = 0; x < buffer[y].length; x++) {
-                    buffer[y-n][x] = buffer[y][x];
-                }
-            }
-            for (int y = buffer.length - n; y < buffer.length; y++) {
-                Arrays.fill(buffer[y], ' ');
-            }
-        }
-
-        void show(String s) {
-            for (int i = 0; i < s.length(); i++) {
-                show(s.charAt(i));
-            }
-        }
-
-        void show(char c) {
-            if (y >= buffer.length) {
-                scroll(1);
-                y = buffer.length - 1;
-            }
-            if (c == '\n' || x >= buffer[y].length) {
-                x = 0;
-                y++;
-            }
-            if (y >= buffer.length) {
-                scroll(1);
-                y = buffer.length - 1;
-            }
-            if (c != '\n') {
-                buffer[y][x] = c;
-                x++;
-            }
-        }
-
-        Dimension getSize() {
-            return new Dimension(buffer[0].length, buffer.length);
-        }
-
-        void hide() {
-            textView.post(new Runnable() {
-                @Override public void run() {
-                    textView.setVisibility(View.GONE);
-                }
-            });
-        }
-
-        void reset() {
-            x = 0;
-            y = 0;
-            for (char[] line : buffer) {
-                Arrays.fill(line, ' ');
-            }
-        }
-    }
 
     private Bundle recognitionResults;
     private boolean recognizerReady = true;
@@ -205,7 +144,7 @@ public class Play extends Activity {
             for (;;) {
                 recognizerReady = false;
                 recognitionResults = null;
-                statusView.post(startRecognizing);
+                textView.post(startRecognizing);
                 while (!recognizerReady) {
                     recognitionListener.wait();
                 }
@@ -258,7 +197,6 @@ public class Play extends Activity {
 
         @Override
         public void onReadyForSpeech(Bundle params) {
-            Log.d(TAG,"onReadyForSpeech");
         }
 
         @Override
@@ -316,8 +254,81 @@ public class Play extends Activity {
     }
 
     private final ZUserInterface zui = new ZUserInterface() {
-        private ArrayList<Window> windows = new ArrayList<Window>();
+        private int screenSplit = 0;
         private int currentWindow = 0;
+        private int[] x = new int[] { 0, 0 };
+        private int[] y = new int[] { 0, 0 };
+        private int[] ymin = new int[] { 0, 0 };
+        private int[] ymax = new int[] { 0, 0 };
+        private int scrollCount;
+        private StringBuilder blankLine = new StringBuilder();
+        private int textStyle = 0;
+
+        private final Runnable refreshScreen = new Runnable() {
+            @Override
+            public void run() {
+                textView.setText(screenBuffer);
+            }
+        };
+
+        private void print(char c) {
+            int windowHeight = ymax[currentWindow] - ymin[currentWindow];
+            if (y[currentWindow] >= windowHeight) {
+                scroll();
+                y[currentWindow] = windowHeight - 1;
+            }
+            if (c == '\n' || x[currentWindow] >= screenWidth) {
+                x[currentWindow] = 0;
+                y[currentWindow]++;
+            }
+            if (y[currentWindow] >= windowHeight) {
+                scroll();
+                y[currentWindow] = windowHeight - 1;
+            }
+            if (c != '\n') {
+                screenBuffer.replace((y[currentWindow]+ymin[currentWindow])*(screenWidth+1)+x[currentWindow],(y[currentWindow]+ymin[currentWindow])*(screenWidth+1)+x[currentWindow]+1,String.valueOf(c));
+                x[currentWindow]++;
+            }
+        }
+
+        private void print(String s) {
+            scrollCount = 0;
+            int startX = x[currentWindow];
+            int startY = y[currentWindow];
+            for (int i = 0; i < s.length(); i++) {
+                print(s.charAt(i));
+            }
+            startY -= scrollCount;
+            if (startY < 0) {
+                startY = 0;
+                startX = 0;
+            }
+            int start = startX + (startY+ymin[currentWindow])*(screenWidth+1);
+            int end = x[currentWindow] + (y[currentWindow]+ymin[currentWindow])*(screenWidth+1);
+            switch (textStyle & 134) {
+            case 2:
+                screenBuffer.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+                break;
+            case 4:
+                screenBuffer.setSpan(new StyleSpan(Typeface.ITALIC), start, end, 0);
+                break;
+            case 6:
+                screenBuffer.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), start, end, 0);
+                break;
+            case 128:
+                screenBuffer.setSpan(new UnderlineSpan(), start, end, 0);
+            default:
+            }
+        }
+
+        private void scroll() {
+            scrollCount++;
+            if (currentWindow == 0) {
+                screenBuffer.delete(screenSplit*(screenWidth+1), (screenSplit+1)*(screenWidth+1)).append(blankLine);
+            } else if (screenSplit > 0) {
+                screenBuffer.insert(screenSplit*(screenWidth+1), blankLine).delete(0, screenWidth+1);
+            }
+        }
 
         @Override
         public void fatal(String errmsg) {
@@ -328,10 +339,27 @@ public class Play extends Activity {
         @Override
         public void initialize(int ver) {
             Log.d(TAG,"initialize:ver="+ver);
-            windows.add(new Window(screenWidth, screenHeight, mainView));
             if (ver <= 3) {
-                windows.add(new Window(screenWidth, 1, statusView));
+                screenSplit = 1;
+                ymin[0] = 1; ymax[0] = screenHeight;
+                ymin[1] = 0; ymax[1] = 1;
+            } else {
+                screenSplit = 0;
+                ymin[0] = 0; ymax[0] = screenHeight;
+                ymin[1] = 0; ymax[1] = 0;
+            }    
+            currentWindow = 0;
+            x[0] = 0; x[1] = 0; y[0] = 0; y[1] = 0;
+            blankLine.setLength(0);
+            for (int i = 0; i < screenWidth; i++) {
+                blankLine.append(' ');
             }
+            blankLine.append('\n');
+            screenBuffer.clear();
+            for (int i = 0; i < screenHeight; i++) {
+                screenBuffer.append(blankLine);
+            }
+            textStyle = 0;
         }
 
         @Override
@@ -360,12 +388,12 @@ public class Play extends Activity {
 
         @Override
         public boolean hasBoldface() {
-            return false;
+            return true;
         }
 
         @Override
         public boolean hasItalic() {
-            return false;
+            return true;
         }
 
         @Override
@@ -395,7 +423,7 @@ public class Play extends Activity {
 
         @Override
         public Dimension getWindowSize(int window) {
-            return windows.get(window).getSize();
+            return new Dimension(screenWidth, ymax[currentWindow] - ymin[currentWindow]);
         }
     
         @Override
@@ -410,40 +438,38 @@ public class Play extends Activity {
 
         @Override
         public Point getCursorPosition() {
-            Window w = windows.get(currentWindow);
-            return new Point(w.x, w.y);
+            return new Point(x[currentWindow]+1, y[currentWindow]+1);
         }
 
         @Override
         public void showStatusBar(String s,int a,int b,boolean flag) {
             Log.d(TAG,"showStatusBar:"+s+","+a+","+b);
-            Window statusBar = windows.get(1);
-            statusBar.reset();
-            int w = statusBar.buffer[0].length;
-            if (s.length() > w) {
-                s = s.substring(0, w);
-            }
-            statusBar.show(s);
+            screenBuffer.replace(0, screenWidth, blankLine, 0, screenWidth);
+            int w = Math.min(s.length(), screenWidth);
+            screenBuffer.replace(0, w, s, 0, w);
             String numbers;
             if (flag) {
                 numbers = String.format(" %2d:%02d", a, b);
             } else {
                 numbers = String.format(" %d/%d", a, b);
             }
-            if (numbers.length() < w) {
-                statusBar.x = w - numbers.length();
-                statusBar.show(numbers);
+            if (numbers.length() < screenWidth) {
+                screenBuffer.replace(screenWidth - numbers.length(), screenWidth, numbers);
             }
         }
 
         @Override
         public void splitScreen(int lines) {
+            int oldSplit = screenSplit;
             Log.d(TAG,"splitScreen:lines="+lines);
-            if (windows.size() < 2) {
-                windows.add(new Window(screenWidth, lines, statusView));
-            } else {
-                windows.set(1,new Window(screenWidth, lines, statusView));
+            screenSplit = lines;
+            x[1] = 0; y[1] = 0;
+            ymin[0] = lines; ymax[0] = screenHeight;
+            ymin[1] = 0; ymax[1] = lines;
+            for (int i = 0; i < lines; i++) {
+                screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
             }
+            y[0] = Math.max(0, Math.min(y[0] + oldSplit - screenSplit, screenHeight - screenSplit));
         }
     
         @Override
@@ -453,16 +479,21 @@ public class Play extends Activity {
         }
 
         @Override
-        public void setCursorPosition(int x,int y) {
-            Log.d(TAG,"setCursorPosition:x="+x+",y="+y);
-            Window w = windows.get(currentWindow);
-            if (x < 32768) {
-                w.x = x - 1;
+        public void setCursorPosition(int newx,int newy) {
+            Log.d(TAG,"setCursorPosition:x="+newx+",y="+newy);
+            int windowHeight = ymax[currentWindow] - ymin[currentWindow];
+            if (newx < 32768) {
+                newx = newx - 1;
             } else {
-                w.x = w.buffer[0].length + x - 65536;
+                newx = screenWidth + newx - 65536;
             }
-            w.x = Math.min(Math.max(0, w.x), w.buffer[0].length);
-            w.y = Math.min(Math.max(0, y - 1), w.buffer.length);
+            if (newy < 32768) {
+                newy = newy - 1;
+            } else {
+                newy = windowHeight + newy - 65536;
+            }
+            x[currentWindow] = Math.min(Math.max(0, newx), screenWidth);
+            y[currentWindow] = Math.min(Math.max(0, newy), windowHeight);
         }
 
         @Override
@@ -471,6 +502,13 @@ public class Play extends Activity {
 
         @Override
         public void setTextStyle(int style) {
+            Log.d(TAG,"setTextStyle:style="+style);
+            // 0: roman
+            // 1: reverse
+            // 2: bold
+            // 4: italic
+            // 8: fixed
+            textStyle = style;
         }
 
         @Override
@@ -483,9 +521,7 @@ public class Play extends Activity {
             if (Thread.currentThread().isInterrupted()) {
                 throw new ZQuitException();
             }
-            for (Window w : windows) {
-                w.updateView();
-            }
+            textView.post(refreshScreen);
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
@@ -493,8 +529,14 @@ public class Play extends Activity {
             }
             String r = story.chooseInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
             Log.d(TAG,"readLine:"+r);
-            windows.get(0).show(r);
-            windows.get(0).show('\n');
+            int saveCurrentWindow = currentWindow;
+            int saveTextStyle = textStyle;
+            currentWindow = 0;
+            textStyle = 128;
+            print(r);
+            print('\n');
+            textStyle = saveTextStyle;
+            currentWindow = saveCurrentWindow;
             sb.append(r);
             return 10;
         }
@@ -505,9 +547,7 @@ public class Play extends Activity {
             if (Thread.currentThread().isInterrupted()) {
                 throw new ZQuitException();
             }
-            for (Window w : windows) {
-                w.updateView();
-            }
+            textView.post(refreshScreen);
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
@@ -524,15 +564,13 @@ public class Play extends Activity {
             if (Thread.currentThread().isInterrupted()) {
                 throw new ZQuitException();
             }
-            windows.get(currentWindow).show(s);
+            print(s);
             if (currentWindow == 0) {
                 s = story.translateOutput(s);
                 if (s == null) {
                     return;
                 }
-                for (Window w : windows) {
-                    w.updateView();
-                }
+                textView.post(refreshScreen);
                 try {
                     say(s);
                 } catch (InterruptedException e) {
@@ -544,24 +582,32 @@ public class Play extends Activity {
         @Override
         public void scrollWindow(int lines) {
             Log.d(TAG,"scrollWindow:lines="+lines);
-            windows.get(currentWindow).scroll(lines);
+            for (int i = 0; i < lines; i++) {
+                scroll();
+            }
         }
 
         @Override
         public void eraseLine(int s) {
             Log.d(TAG,"eraseLine:s="+s);
-            Window w = windows.get(currentWindow);
-            Arrays.fill(w.buffer[s], ' ');
+            if (currentWindow == 0) {
+                screenBuffer.replace((s+screenSplit)*(screenWidth+1), (s+screenSplit)*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+            } else {
+                screenBuffer.replace(s*(screenWidth+1), s*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+            }
         }
 
         @Override
         public void eraseWindow(int window) {
             Log.d(TAG,"eraseWindow:window="+window);
             if (window == 0) {
-                windows.get(0).reset();
-            } else if (windows.size() > window) {
-                windows.get(window).hide();
-                windows.remove(window);
+                for (int i = screenSplit; i < screenHeight; i++) {
+                    screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                }
+            } else {
+                for (int i = 0; i < screenSplit; i++) {
+                    screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                }
             }
         }
 
@@ -577,15 +623,6 @@ public class Play extends Activity {
 
         @Override
         public void restart() {
-            for (Window w : windows) {
-                w.reset();
-            }
-            statusView.post(new Runnable() {
-                @Override public void run() {
-                    statusView.setText("");
-                    mainView.setText("");
-                }
-            });
         }
     };
 }
