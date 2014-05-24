@@ -187,14 +187,25 @@ class Story implements Serializable {
     }
 
     public String chooseInput(List<String> options) {
-        return options.get(0);
+        String input = options.get(0);
+        if ("south east".equals(input)) {
+            return "southeast";
+        } else if ("go south east".equals(input)) {
+            return "go southeast";
+        } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
+            return "wear" + input.substring(5);
+        }
+        return input;
     }
 
     public char chooseCharacterInput(List<String> options) {
-        if ("space".equals(options.get(0))) {
+        String input = options.get(0);
+        if ("space".equals(input)) {
             return ' ';
+        } else if ("enter".equals(input)) {
+            return '\n';
         }
-        return options.get(0).charAt(0);
+        return input.charAt(0);
     }
 
     public String translateOutput(String output) {
