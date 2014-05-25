@@ -23,13 +23,23 @@ import java.util.regex.Pattern;
 class StoryLister {
     private static final String TAG = StoryLister.class.getSimpleName();
 
-    private static final long IFARCHIVE_CACHE_TIMEOUT = 1000L*3600L*24L*7L;
+    private Context context;
+    private String ifarchiveScrapeURL;
+    private String ifarchiveDownloadURL;
+    private long ifarchiveCacheTimeout;
 
-    public List<Story> getStories(Context context, Runnable onUpdateStories) throws IOException {
+    StoryLister(Context context) {
+        this.context = context;
+        ifarchiveScrapeURL = context.getString(R.string.ifarchive_scrape_url);
+        ifarchiveDownloadURL = context.getString(R.string.ifarchive_download_url);
+        ifarchiveCacheTimeout = (long) context.getResources().getInteger(R.integer.ifarchive_cache_timeout);
+    }
+
+    public List<Story> getStories(Runnable onUpdateStories) throws IOException {
         ArrayList<Story> stories = new ArrayList<Story>();
-        addDownloaded(context, stories);
-        addInitial(context, stories);
-        addIfArchive(context, onUpdateStories, stories);
+        addDownloaded(stories);
+        addInitial(stories);
+        addIfArchive(onUpdateStories, stories);
         return stories;
     }
 
@@ -42,7 +52,7 @@ class StoryLister {
         stories.add(story);
     }
 
-    private void addDownloaded(Context context, ArrayList<Story> stories) throws IOException {
+    private void addDownloaded(ArrayList<Story> stories) throws IOException {
         for (File file : Story.getRootDir(context).listFiles()) {
             Story story = new Story(file.getName(), "", null);
             if (story.isDownloaded(context)) {
@@ -51,20 +61,20 @@ class StoryLister {
         }
     }
 
-    private void addInitial(Context context, ArrayList<Story> stories) throws IOException {
+    private void addInitial(ArrayList<Story> stories) throws IOException {
         String[] initial = context.getResources().getStringArray(R.array.initial_story_list);
         for (int i = 0; i + 3 < initial.length; i += 4) {
             addStory(new Story(initial[i], initial[i+1], new URL(initial[i+2]), initial[i+3].length() > 0 ? initial[i+3] : null), stories);
         }
     }
 
-    private void addIfArchive(final Context context, final Runnable onUpdateStories, ArrayList<Story> stories) throws IOException {
+    private void addIfArchive(final Runnable onUpdateStories, ArrayList<Story> stories) throws IOException {
         final File ifarchiveCache = new File(context.getDir("cache", Context.MODE_PRIVATE), "ifarchive");
         DataInputStream in = null;
         try {
             in = new DataInputStream(new FileInputStream(ifarchiveCache));
             for (;;) {
-                addStory(new Story(in.readUTF(), in.readUTF(), new URL("http://www.ifarchive.org"+in.readUTF())), stories);
+                addStory(new Story(in.readUTF(), in.readUTF(), new URL(ifarchiveDownloadURL+in.readUTF())), stories);
             }
         } catch (FileNotFoundException e) {
         } catch (EOFException e) {
@@ -73,7 +83,7 @@ class StoryLister {
                 in.close();
             }
         }
-        if (ifarchiveCache.lastModified() + IFARCHIVE_CACHE_TIMEOUT < System.currentTimeMillis()) {
+        if (ifarchiveCache.lastModified() + ifarchiveCacheTimeout < System.currentTimeMillis()) {
             new Thread() {
                 @Override public void run() {
                     File tmpFile = null;
@@ -108,7 +118,7 @@ class StoryLister {
         Pattern pattern = Pattern.compile("\\<li.*class=\"Date\"\\>\\[([^]]+)\\].*\\.\\.(/if-archive/games/zcode/[^\"]+)\"\\>if-archive/games/zcode/([^/]+)\\.(z3|z5|z8|zblorb)\\</a\\>");
         InputStream in = null;
         try {
-            in = new URL("http://www.ifarchive.org/indexes/date_3.html").openStream();
+            in = new URL(ifarchiveScrapeURL).openStream();
             BufferedReader r = new BufferedReader(new InputStreamReader(in));
             for (String line = r.readLine(); line != null; line = r.readLine()) {
                 Matcher m = pattern.matcher(line);

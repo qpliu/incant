@@ -23,4 +23,8 @@
     <item>http://www.ifarchive.org/if-archive/games/zcode/Bronze.zblorb</item>
     <item/>
   </string-array>
+
+  <string name="ifarchive_scrape_url">http://mirror.ifarchive.org/indexes/date_3.html</string>
+  <string name="ifarchive_download_url">http://www.ifarchive.org</string>
+  <integer name="ifarchive_cache_timeout">604800000</integer>
 </resources>

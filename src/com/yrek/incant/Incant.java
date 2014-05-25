@@ -23,7 +23,7 @@ public class Incant extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        storyLister = new StoryLister();
+        storyLister = new StoryLister(this);
         storyList = (ListView) findViewById(R.id.storylist);
         storyListAdapter = new StoryListAdapter();
 
@@ -51,7 +51,7 @@ public class Incant extends Activity {
         storyListAdapter.setNotifyOnChange(false);
         storyListAdapter.clear();
         try {
-            storyListAdapter.addAll(storyLister.getStories(this, onListUpdated));
+            storyListAdapter.addAll(storyLister.getStories(onListUpdated));
         } catch (Exception e) {
             Log.wtf(TAG,e);
         }
