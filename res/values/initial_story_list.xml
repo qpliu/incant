@@ -34,5 +34,5 @@
     <item>http://ifdb.tads.org/random?t=recent</item>
   </string-array>
   <string name="ifdb_story_url">http://ifdb.tads.org/</string>
-  <integer name="ifdb_cache_timeout">1000</integer>
+  <integer name="ifdb_cache_timeout">60000</integer>
 </resources>

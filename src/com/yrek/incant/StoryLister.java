@@ -79,10 +79,26 @@ class StoryLister {
 
     private void addDownloaded(ArrayList<Story> stories) throws IOException {
         for (File file : Story.getRootDir(context).listFiles()) {
-            Story story = new Story(file.getName(), "", null);
-            if (story.isDownloaded(context)) {
-                addStory(story, stories);
+            File storyFile = Story.getStoryFile(context, file.getName());
+            if (!storyFile.exists()) {
+                continue;
             }
+            File saveFile = Story.getSaveFile(context, file.getName());
+            String description;
+            if (!saveFile.exists()) {
+                if (storyFile.lastModified() + 86400000L > System.currentTimeMillis()) {
+                    description = context.getString(R.string.downloaded_recently, storyFile.lastModified());
+                } else {
+                    description = context.getString(R.string.downloaded_at, storyFile.lastModified());
+                }
+            } else {
+                if (saveFile.lastModified() + 86400000L > System.currentTimeMillis()) {
+                    description = context.getString(R.string.saved_recently, saveFile.lastModified());
+                } else {
+                    description = context.getString(R.string.saved_at, saveFile.lastModified());
+                }
+            }
+            addStory(new Story(file.getName(), description, null), stories);
         }
     }
 

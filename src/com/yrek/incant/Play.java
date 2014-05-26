@@ -636,7 +636,7 @@ public class Play extends Activity {
 
         @Override
         public String getFilename(String title,String suggested,boolean saveFlag) {
-            return story.getFile(Play.this, "save").getPath();
+            return story.getSaveFile(Play.this).getPath();
         }
 
         @Override

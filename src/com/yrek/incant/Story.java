@@ -47,16 +47,32 @@ class Story implements Serializable {
         return context.getDir("story", Context.MODE_PRIVATE);
     }
 
-    public File getDir(Context context) {
+    public static File getStoryDir(Context context, String name) {
         return new File(getRootDir(context), name);
     }
 
+    public static File getStoryFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "story");
+    }
+
+    public static File getSaveFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "save");
+    }
+
+    public File getDir(Context context) {
+        return getStoryDir(context, name);
+    }
+
     public File getFile(Context context) {
-        return getFile(context, "story");
+        return getStoryFile(context, name);
     }
 
     public File getFile(Context context, String file) {
         return new File(getDir(context), file);
+    }
+
+    public File getSaveFile(Context context) {
+        return getSaveFile(context, name);
     }
 
     public boolean isDownloaded(Context context) {
