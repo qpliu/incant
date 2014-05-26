@@ -33,28 +33,25 @@ public class Incant extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        refreshStoryList(new Runnable() {
-            @Override public void run() {
-                storyList.post(refreshStoryList);
-            }
-        });
+        refreshStoryList();
     }
 
     private final Runnable refreshStoryList = new Runnable() {
         @Override
         public void run() {
-            refreshStoryList(null);
+            refreshStoryList();
         }
     };
 
-    private void refreshStoryList(Runnable onListUpdated) {
+    private void refreshStoryList() {
         storyListAdapter.setNotifyOnChange(false);
         storyListAdapter.clear();
         try {
-            storyListAdapter.addAll(storyLister.getStories(onListUpdated));
+            storyListAdapter.addAll(storyLister.getStories());
         } catch (Exception e) {
             Log.wtf(TAG,e);
         }
+        storyListAdapter.add(null);
         storyListAdapter.notifyDataSetChanged();
     }
 
@@ -69,52 +66,82 @@ public class Incant extends Activity {
             if (convertView == null) {
                 convertView = Incant.this.getLayoutInflater().inflate(R.layout.story, parent, false);
             }
-            ((TextView) convertView.findViewById(R.id.name)).setText(story.getName());
-            ((TextView) convertView.findViewById(R.id.description)).setText(story.getDescription());
             final Button download = (Button) convertView.findViewById(R.id.download);
             final Button play = (Button) convertView.findViewById(R.id.play);
             final Button delete = (Button) convertView.findViewById(R.id.delete);
             final ProgressBar progressBar = (ProgressBar) convertView.findViewById(R.id.progressbar);
-            if (story.isDownloaded(Incant.this)) {
-                download.setVisibility(View.GONE);
-                play.setVisibility(View.VISIBLE);
-                delete.setVisibility(View.VISIBLE);
-            } else {
+            View info = convertView.findViewById(R.id.info);
+            progressBar.setVisibility(View.GONE);
+            if (story == null) {
+                info.setVisibility(View.GONE);
                 download.setVisibility(View.VISIBLE);
                 play.setVisibility(View.GONE);
                 delete.setVisibility(View.GONE);
-            }
-            progressBar.setVisibility(View.GONE);
-            download.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    download.setVisibility(View.GONE);
-                    progressBar.setVisibility(View.VISIBLE);
-                    new Thread() {
-                        @Override public void run() {
-                            try {
-                                story.download(Incant.this);
-                            } catch (Exception e) {
-                                Log.wtf(TAG,e);
-                            }
-                            storyList.post(refreshStoryList);
+                    play.setVisibility(View.GONE);
+                    delete.setVisibility(View.GONE);
+                    download.setVisibility(View.VISIBLE);
+                    download.setText(R.string.scrape);
+                    download.setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) {
+                            download.setVisibility(View.GONE);
+                            progressBar.setVisibility(View.VISIBLE);
+                            new Thread() {
+                                @Override public void run() {
+                                    try {
+                                        storyLister.scrape();
+                                    } catch (Exception e) {
+                                        Log.wtf(TAG,e);
+                                    }
+                                    storyList.post(refreshStoryList);
+                                }
+                            }.start();
                         }
-                    }.start();
+                    });
+            } else {
+                info.setVisibility(View.VISIBLE);
+                ((TextView) convertView.findViewById(R.id.name)).setText(story.getName());
+                ((TextView) convertView.findViewById(R.id.description)).setText(story.getDescription());
+                if (story.isDownloaded(Incant.this)) {
+                    download.setVisibility(View.GONE);
+                    play.setVisibility(View.VISIBLE);
+                    delete.setVisibility(View.VISIBLE);
+                    play.setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) {
+                            Log.d(TAG, "play:"+story.getName());
+                            Intent intent = new Intent(Incant.this, Play.class);
+                            intent.putExtra(Play.STORY, story);
+                            startActivity(intent);
+                        }
+                    });
+                    delete.setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) {
+                            story.delete(Incant.this);
+                            refreshStoryList();
+                        }
+                    });
+                } else {
+                    play.setVisibility(View.GONE);
+                    delete.setVisibility(View.GONE);
+                    download.setVisibility(View.VISIBLE);
+                    download.setText(R.string.download);
+                    download.setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) {
+                            download.setVisibility(View.GONE);
+                            progressBar.setVisibility(View.VISIBLE);
+                            new Thread() {
+                                @Override public void run() {
+                                    try {
+                                        story.download(Incant.this);
+                                    } catch (Exception e) {
+                                        Log.wtf(TAG,e);
+                                    }
+                                    storyList.post(refreshStoryList);
+                                }
+                            }.start();
+                        }
+                    });
                 }
-            });
-            play.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    Log.d(TAG, "play:"+story.getName());
-                    Intent intent = new Intent(Incant.this, Play.class);
-                    intent.putExtra(Play.STORY, story);
-                    startActivity(intent);
-                }
-            });
-            delete.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    story.delete(Incant.this);
-                    refreshStoryList(null);
-                }
-            });
+            }
             return convertView;
         }
     }

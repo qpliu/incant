@@ -24,7 +24,15 @@
     <item/>
   </string-array>
 
-  <string name="ifarchive_scrape_url">http://mirror.ifarchive.org/indexes/date_3.html</string>
-  <string name="ifarchive_download_url">http://www.ifarchive.org</string>
+  <string name="ifarchive_scrape_url">http://mirror.ifarchive.org/indexes/date_2.html</string>
+  <string name="ifarchive_download_url">http://mirror.ifarchive.org</string>
   <integer name="ifarchive_cache_timeout">604800000</integer>
+
+  <string-array name="ifdb_scrape_urls">
+    <item>http://ifdb.tads.org/random</item>
+    <item>http://ifdb.tads.org/random?t=high-rated</item>
+    <item>http://ifdb.tads.org/random?t=recent</item>
+  </string-array>
+  <string name="ifdb_story_url">http://ifdb.tads.org/</string>
+  <integer name="ifdb_cache_timeout">1000</integer>
 </resources>

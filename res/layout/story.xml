@@ -9,7 +9,7 @@
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
      android:id="@+id/download"
-     android:text="Download"
+     android:text="@string/download"
      />
   <ProgressBar
      android:layout_width="wrap_content"
@@ -21,18 +21,19 @@
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
      android:id="@+id/play"
-     android:text="Play"
+     android:text="@string/play"
      />
   <Button
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
      android:id="@+id/delete"
-     android:text="Delete"
+     android:text="@string/delete"
      />
   <LinearLayout
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
      android:orientation="vertical"
+     android:id="@+id/info"
      >
     <TextView
        android:layout_width="wrap_content"
