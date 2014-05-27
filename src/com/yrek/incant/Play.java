@@ -15,6 +15,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.Arrays;
@@ -34,6 +35,8 @@ public class Play extends Activity {
     private Story story;
     private ZCPU zcpu;
     private TextView textView;
+    private Button keyboardButton;
+    private Button skipButton;
     private Thread zthread;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -51,6 +54,8 @@ public class Play extends Activity {
         story = (Story) getIntent().getSerializableExtra(STORY);
         ((TextView) findViewById(R.id.name)).setText(story.getName());
         textView = (TextView) findViewById(R.id.text);
+        keyboardButton = (Button) findViewById(R.id.keyboard);
+        skipButton = (Button) findViewById(R.id.skip);
         screenBuffer = new SpannableStringBuilder();
         screenWidth = 0;
         screenHeight = 0;
@@ -63,6 +68,7 @@ public class Play extends Activity {
                 }
             }
         });
+        skipButton.setOnClickListener(skipButtonOnClickListener);
         inputtextColor = getResources().getColor(R.color.inputtext);
         textColor = getResources().getColor(R.color.text);
         backgroundColor = getResources().getColor(R.color.background);
@@ -103,6 +109,8 @@ public class Play extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        keyboardButton.setVisibility(View.GONE);
+        skipButton.setVisibility(View.GONE);
         if (zthread == null) {
             zthread = new Thread("ZCPU") {
                 @Override public void run() {
@@ -221,6 +229,7 @@ public class Play extends Activity {
         }
     };
 
+    private boolean speechCanceled = false;
     private boolean utteranceQueued = false;
 
     private final UtteranceProgressListener utteranceProgressListener = new UtteranceProgressListener() {
@@ -247,6 +256,9 @@ public class Play extends Activity {
 
     private void say(String s) throws InterruptedException {
         synchronized (utteranceProgressListener) {
+            if (speechCanceled) {
+                return;
+            }
             while (utteranceQueued) {
                 utteranceProgressListener.wait();
             }
@@ -260,6 +272,16 @@ public class Play extends Activity {
         }
     }
 
+    private View.OnClickListener skipButtonOnClickListener = new View.OnClickListener() {
+        @Override public void onClick(View v) {
+            synchronized (utteranceProgressListener) {
+                speechCanceled = true;
+                textToSpeech.stop();
+            }
+            skipButton.setVisibility(View.GONE);
+        }
+    };
+
     private final ZUserInterface zui = new ZUserInterface() {
         private int screenSplit = 0;
         private int currentWindow = 0;
@@ -271,15 +293,34 @@ public class Play extends Activity {
         private StringBuilder blankLine = new StringBuilder();
         private int textStyle = 0;
 
-        private final Runnable refreshScreen = new Runnable() {
+        private void refreshScreen() {
+            for (Object o : screenBuffer.getSpans(0, screenBuffer.length(), Object.class)) {
+                if (screenBuffer.getSpanStart(o) >= screenBuffer.getSpanEnd(o)) {
+                    screenBuffer.removeSpan(o);
+                }
+            }
+            textView.setText(screenBuffer);
+        }
+
+        private final Runnable prepareForInput = new Runnable() {
             @Override
             public void run() {
-                for (Object o : screenBuffer.getSpans(0, screenBuffer.length(), Object.class)) {
-                    if (screenBuffer.getSpanStart(o) >= screenBuffer.getSpanEnd(o)) {
-                        screenBuffer.removeSpan(o);
+                skipButton.setVisibility(View.GONE);
+                keyboardButton.setVisibility(View.VISIBLE);
+                refreshScreen();
+            }
+        };
+
+        private final Runnable prepareForOutput = new Runnable() {
+            @Override
+            public void run() {
+                keyboardButton.setVisibility(View.GONE);
+                synchronized (utteranceProgressListener) {
+                    if (!speechCanceled) {
+                        skipButton.setVisibility(View.VISIBLE);
+                        refreshScreen();
                     }
                 }
-                textView.setText(screenBuffer);
             }
         };
 
@@ -541,7 +582,8 @@ public class Play extends Activity {
             if (Thread.currentThread().isInterrupted()) {
                 throw new ZQuitException();
             }
-            textView.post(refreshScreen);
+            textView.post(prepareForInput);
+            speechCanceled = false;
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
@@ -567,7 +609,8 @@ public class Play extends Activity {
             if (Thread.currentThread().isInterrupted()) {
                 throw new ZQuitException();
             }
-            textView.post(refreshScreen);
+            textView.post(prepareForInput);
+            speechCanceled = false;
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
@@ -590,7 +633,7 @@ public class Play extends Activity {
                 if (s == null) {
                     return;
                 }
-                textView.post(refreshScreen);
+                textView.post(prepareForOutput);
                 try {
                     say(s);
                 } catch (InterruptedException e) {

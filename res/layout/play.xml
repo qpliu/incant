@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
    xmlns:android="http://schemas.android.com/apk/res/android"
-   android:orientation="vertical"
    android:layout_width="fill_parent"
    android:layout_height="fill_parent"
    android:keepScreenOn="true"
@@ -10,6 +9,7 @@
      android:layout_width="fill_parent" 
      android:layout_height="wrap_content" 
      android:id="@+id/name"
+     android:layout_alignParentTop="true"
      />
   <TextView  
      android:layout_width="fill_parent" 
@@ -18,5 +18,28 @@
      android:typeface="monospace"
      android:textColor="@color/text"
      android:background="@color/background"
+     android:layout_below="@id/name"
      />
-</LinearLayout>
+  <Button
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:id="@+id/keyboard"
+     android:alpha="0.4"
+     android:text="@string/keyboard"
+     android:layout_alignParentBottom="true"
+     android:layout_alignParentRight="true"
+     android:layout_marginBottom="-24sp"
+     android:layout_marginRight="10sp"
+     />
+  <Button
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:id="@+id/skip"
+     android:alpha="0.4"
+     android:text="@string/skip"
+     android:layout_alignParentBottom="true"
+     android:layout_alignParentRight="true"
+     android:layout_marginBottom="-24sp"
+     android:layout_marginRight="10sp"
+     />
+</RelativeLayout>
