@@ -368,7 +368,7 @@ public class Play extends Activity {
                 screenSplit = 0;
                 ymin[0] = 0; ymax[0] = screenHeight;
                 ymin[1] = 0; ymax[1] = 0;
-            }    
+            }
             currentWindow = 0;
             x[0] = 0; x[1] = 0; y[0] = 0; y[1] = 0;
             blankLine.setLength(0);
@@ -386,7 +386,7 @@ public class Play extends Activity {
         @Override
         public void setTerminatingCharacters(Vector chars) {
         }
-    
+
         @Override
         public boolean hasStatusLine() {
             return true;
@@ -426,7 +426,7 @@ public class Play extends Activity {
         public boolean hasTimedInput() {
             return false;
         }
-    
+
         @Override
         public Dimension getScreenCharacters() {
             return new Dimension(screenWidth, screenHeight);
@@ -446,7 +446,7 @@ public class Play extends Activity {
         public Dimension getWindowSize(int window) {
             return new Dimension(screenWidth, ymax[currentWindow] - ymin[currentWindow]);
         }
-    
+
         @Override
         public int getDefaultForeground() {
             return 1;
@@ -489,12 +489,9 @@ public class Play extends Activity {
             x[1] = 0; y[1] = 0;
             ymin[0] = lines; ymax[0] = screenHeight;
             ymin[1] = 0; ymax[1] = lines;
-            for (int i = 0; i < lines; i++) {
-                screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
-            }
             y[0] = Math.max(0, Math.min(y[0] + oldSplit - screenSplit, screenHeight - screenSplit));
         }
-    
+
         @Override
         public void setCurrentWindow(int window) {
             Log.d(TAG,"setCurrentWindow:window="+window);
@@ -613,24 +610,40 @@ public class Play extends Activity {
         @Override
         public void eraseLine(int s) {
             Log.d(TAG,"eraseLine:s="+s);
+            int start;
             if (currentWindow == 0) {
-                screenBuffer.replace((s+screenSplit)*(screenWidth+1), (s+screenSplit)*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                start = (s+screenSplit)*(screenWidth+1);
             } else {
-                screenBuffer.replace(s*(screenWidth+1), s*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                start = s*(screenWidth+1);
+            }
+            screenBuffer.replace(start, start+screenWidth, blankLine, 0, screenWidth);
+            for (Object o : screenBuffer.getSpans(start, start+screenWidth, Object.class)) {
+                screenBuffer.removeSpan(o);
             }
         }
 
         @Override
         public void eraseWindow(int window) {
             Log.d(TAG,"eraseWindow:window="+window);
+            int start;
+            int end;
             if (window == 0) {
+                start = screenSplit*(screenWidth+1);
+                end = start;
                 for (int i = screenSplit; i < screenHeight; i++) {
                     screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                    end = i*(screenWidth+1)+screenWidth;
                 }
             } else {
+                start = 0;
+                end = start;
                 for (int i = 0; i < screenSplit; i++) {
                     screenBuffer.replace(i*(screenWidth+1), i*(screenWidth+1)+screenWidth, blankLine, 0, screenWidth);
+                    end = i*(screenWidth+1)+screenWidth;
                 }
+            }
+            for (Object o : screenBuffer.getSpans(start, end, Object.class)) {
+                screenBuffer.removeSpan(o);
             }
         }
 
