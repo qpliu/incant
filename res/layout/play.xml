@@ -42,4 +42,17 @@
      android:layout_marginBottom="-24sp"
      android:layout_marginRight="10sp"
      />
+  <EditText
+     android:layout_width="fill_parent"
+     android:layout_height="wrap_content"
+     android:id="@+id/edit"
+     android:textColor="@color/inputtext"
+     android:background="@color/background"
+     android:visibility="gone"
+     android:layout_below="@id/name"
+     android:inputType="text"
+     android:clickable="false"
+     android:focusable="false"
+     android:imeActionLabel="@string/enter"
+     />
 </RelativeLayout>

@@ -11,4 +11,5 @@
   <string name="saved_at">Saved %tD</string>
   <string name="keyboard">Keyboard</string>
   <string name="skip">Skip</string>
+  <string name="enter">Enter</string>
 </resources>

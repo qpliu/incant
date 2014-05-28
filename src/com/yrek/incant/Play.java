@@ -1,6 +1,7 @@
 package com.yrek.incant;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -14,8 +15,11 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.util.Arrays;
@@ -37,6 +41,8 @@ public class Play extends Activity {
     private TextView textView;
     private Button keyboardButton;
     private Button skipButton;
+    private EditText editText;
+    private InputMethodManager inputMethodManager;
     private Thread zthread;
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -56,6 +62,8 @@ public class Play extends Activity {
         textView = (TextView) findViewById(R.id.text);
         keyboardButton = (Button) findViewById(R.id.keyboard);
         skipButton = (Button) findViewById(R.id.skip);
+        editText = (EditText) findViewById(R.id.edit);
+        inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         screenBuffer = new SpannableStringBuilder();
         screenWidth = 0;
         screenHeight = 0;
@@ -69,6 +77,9 @@ public class Play extends Activity {
             }
         });
         skipButton.setOnClickListener(skipButtonOnClickListener);
+        keyboardButton.setOnClickListener(keyboardButtonOnClickListener);
+        editText.setOnFocusChangeListener(editTextOnFocusChangeListener);
+        editText.setOnEditorActionListener(editTextOnEditorActionListener);
         inputtextColor = getResources().getColor(R.color.inputtext);
         textColor = getResources().getColor(R.color.text);
         backgroundColor = getResources().getColor(R.color.background);
@@ -84,7 +95,6 @@ public class Play extends Activity {
         utteranceQueued = true;
         textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override public void onInit(int status) {
-                Log.d(TAG,"TextToSpeech.onInit:status="+status);
                 synchronized(utteranceProgressListener) {
                     utteranceQueued = false;
                     utteranceProgressListener.notify();
@@ -150,6 +160,10 @@ public class Play extends Activity {
 
     private Bundle recognitionResults;
     private boolean recognizerReady = true;
+    private boolean usingKeyboard = false;
+    private boolean usingKeyboardDone = false;
+    private String inputLineResults;
+    private char inputCharResults;
 
     private void recognizeSpeech() throws InterruptedException {
         synchronized (recognitionListener) {
@@ -162,9 +176,23 @@ public class Play extends Activity {
                 textView.post(startRecognizing);
                 while (!recognizerReady) {
                     recognitionListener.wait();
+                    if (usingKeyboard && usingKeyboardDone) {
+                        return;
+                    }
                 }
                 if (recognitionResults != null) {
-                    return;
+                    inputLineResults = story.chooseInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
+                    inputCharResults = story.chooseCharacterInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
+                    if (usingKeyboard) {
+                        final String text = inputLineResults;
+                        textView.post(new Runnable() {
+                            @Override public void run() {
+                                editText.getEditableText().append(text);
+                            }
+                        });
+                    } else {
+                        return;
+                    }
                 }
             }
         }
@@ -229,6 +257,57 @@ public class Play extends Activity {
         }
     };
 
+    private final View.OnClickListener keyboardButtonOnClickListener = new View.OnClickListener() {
+        @Override public void onClick(View v) {
+            editText.setVisibility(View.VISIBLE);
+            editText.setFocusable(true);
+            editText.setFocusableInTouchMode(true);
+            if (editText.requestFocus()) {
+                editText.getEditableText().clear();
+                keyboardButton.setVisibility(View.GONE);
+                synchronized (recognitionListener) {
+                    usingKeyboard = true;
+                    usingKeyboardDone = false;
+                }
+            } else {
+                editText.setVisibility(View.GONE);
+                editText.setFocusable(false);
+                editText.setFocusableInTouchMode(false);
+            }
+        }
+    };
+
+    private final View.OnFocusChangeListener editTextOnFocusChangeListener = new View.OnFocusChangeListener() {
+        @Override
+        public void onFocusChange(View v, boolean hasFocus) {
+            if (hasFocus) {
+                inputMethodManager.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT);
+            } else {
+                inputMethodManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+            }
+        }
+    };
+
+    private final TextView.OnEditorActionListener editTextOnEditorActionListener = new TextView.OnEditorActionListener() {
+        @Override
+        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+            inputLineResults = editText.getText().toString();
+            if (inputLineResults.length() > 0) {
+                inputCharResults = inputLineResults.charAt(0);
+            } else {
+                inputCharResults = '\n';
+            }
+            textView.requestFocus();
+            editText.setFocusable(false);
+            editText.setVisibility(View.GONE);
+            synchronized (recognitionListener) {
+                usingKeyboardDone = true;
+                recognitionListener.notify();
+            }
+            return true;
+        }
+    };
+
     private boolean speechCanceled = false;
     private boolean utteranceQueued = false;
 
@@ -272,9 +351,12 @@ public class Play extends Activity {
         }
     }
 
-    private View.OnClickListener skipButtonOnClickListener = new View.OnClickListener() {
+    private final View.OnClickListener skipButtonOnClickListener = new View.OnClickListener() {
         @Override public void onClick(View v) {
             synchronized (utteranceProgressListener) {
+                if (!utteranceQueued) {
+                    return;
+                }
                 speechCanceled = true;
                 textToSpeech.stop();
             }
@@ -518,6 +600,9 @@ public class Play extends Activity {
             if (numbers.length() < screenWidth) {
                 screenBuffer.replace(screenWidth - numbers.length(), screenWidth, numbers);
             }
+            for (Object o : screenBuffer.getSpans(0, screenWidth, Object.class)) {
+                screenBuffer.removeSpan(o);
+            }
             screenBuffer.setSpan(new ForegroundColorSpan(backgroundColor), 0, screenWidth, 0);
             screenBuffer.setSpan(new BackgroundColorSpan(textColor), 0, screenWidth, 0);
         }
@@ -583,23 +668,24 @@ public class Play extends Activity {
                 throw new ZQuitException();
             }
             textView.post(prepareForInput);
+            usingKeyboard = false;
+            usingKeyboardDone = false;
             speechCanceled = false;
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
                 throw new ZQuitException();
             }
-            String r = story.chooseInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
-            Log.d(TAG,"readLine:"+r);
+            Log.d(TAG,"readLine:"+inputLineResults);
             int saveCurrentWindow = currentWindow;
             int saveTextStyle = textStyle;
             currentWindow = 0;
             textStyle = 128;
-            print(r);
+            print(inputLineResults);
             print('\n');
             textStyle = saveTextStyle;
             currentWindow = saveCurrentWindow;
-            sb.append(r);
+            sb.append(inputLineResults);
             return 10;
         }
 
@@ -610,15 +696,16 @@ public class Play extends Activity {
                 throw new ZQuitException();
             }
             textView.post(prepareForInput);
+            usingKeyboard = false;
+            usingKeyboardDone = false;
             speechCanceled = false;
             try {
                 recognizeSpeech();
             } catch (InterruptedException e) {
                 throw new ZQuitException();
             }
-            char c = story.chooseCharacterInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
-            Log.d(TAG,"readChar:"+c);
-            return  (int) c;
+            Log.d(TAG,"readChar:"+inputCharResults);
+            return (int) inputCharResults;
         }
 
         @Override
