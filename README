@@ -13,7 +13,6 @@ target if needed):
  $ android update project -p . -t android-19
 
 For a debug build and install:
- $ ant debug
- $ ant installd
+ $ ant debug install
 
 Video: http://youtu.be/dwTHFZH8DxU
