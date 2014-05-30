@@ -12,6 +12,8 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.util.HashSet;
+
 public class Incant extends Activity {
     private static final String TAG = Incant.class.getSimpleName();
 
@@ -56,6 +58,8 @@ public class Incant extends Activity {
     }
 
     private class StoryListAdapter extends ArrayAdapter<Story> {
+        private HashSet<String> downloading = new HashSet<String>();
+
         StoryListAdapter() {
             super(Incant.this, R.layout.story);
         }
@@ -122,24 +126,37 @@ public class Incant extends Activity {
                 } else {
                     play.setVisibility(View.GONE);
                     delete.setVisibility(View.GONE);
-                    download.setVisibility(View.VISIBLE);
-                    download.setText(R.string.download);
-                    download.setOnClickListener(new View.OnClickListener() {
-                        @Override public void onClick(View v) {
+                    synchronized (downloading) {
+                        if (downloading.contains(story.getName())) {
                             download.setVisibility(View.GONE);
                             progressBar.setVisibility(View.VISIBLE);
-                            new Thread() {
-                                @Override public void run() {
-                                    try {
-                                        story.download(Incant.this);
-                                    } catch (Exception e) {
-                                        Log.wtf(TAG,e);
-                                    }
-                                    storyList.post(refreshStoryList);
+                        } else {
+                            download.setVisibility(View.VISIBLE);
+                            download.setText(R.string.download);
+                            download.setOnClickListener(new View.OnClickListener() {
+                                @Override public void onClick(View v) {
+                                    download.setVisibility(View.GONE);
+                                    progressBar.setVisibility(View.VISIBLE);
+                                    new Thread() {
+                                        @Override public void run() {
+                                            synchronized (downloading) {
+                                                downloading.add(story.getName());
+                                            }
+                                            try {
+                                                story.download(Incant.this);
+                                            } catch (Exception e) {
+                                                Log.wtf(TAG,e);
+                                            }
+                                            synchronized (downloading) {
+                                                downloading.remove(story.getName());
+                                            }
+                                            storyList.post(refreshStoryList);
+                                        }
+                                    }.start();
                                 }
-                            }.start();
+                            });
                         }
-                    });
+                    }
                 }
             }
             return convertView;
