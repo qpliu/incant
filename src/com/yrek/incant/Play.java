@@ -450,8 +450,34 @@ public class Play extends Activity {
             scrollCount = 0;
             int startX = x[currentWindow];
             int startY = y[currentWindow];
-            for (int i = 0; i < s.length(); i++) {
-                print(s.charAt(i));
+            if (currentWindow != 0) {
+                for (int i = 0; i < s.length(); i++) {
+                    print(s.charAt(i));
+                }
+            } else {
+                int i = 0;
+                while (i < s.length()) {
+                    int wordStart = i;
+                    while (wordStart < s.length() && s.charAt(wordStart) == ' ') {
+                        wordStart++;
+                    }
+                    int wordEnd = wordStart;
+                    while (wordEnd < s.length() && s.charAt(wordEnd) != ' ' && s.charAt(wordEnd) != '\n') {
+                        wordEnd++;
+                    }
+                    if (x[0] + (wordEnd - i) >= screenWidth && x[0] > 0 && wordEnd > wordStart) {
+                        print('\n');
+                        i = wordStart;
+                    } else if (i < wordEnd) {
+                        while (i < wordEnd) {
+                            print(s.charAt(i));
+                            i++;
+                        }
+                    } else {
+                        print(s.charAt(i));
+                        i++;
+                    }
+                }
             }
             startY -= scrollCount;
             if (startY < 0) {
