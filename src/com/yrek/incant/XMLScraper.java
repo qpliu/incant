@@ -1,5 +1,7 @@
 package com.yrek.incant;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
 
@@ -55,10 +57,26 @@ public class XMLScraper {
         };
     }
 
+    public void scrape(InputStream in) throws Exception {
+        parser.parse(in, defaultHandler);
+    }
+
     public void scrape(String url) throws Exception {
         InputStream in = null;
         try {
             in = new URL(url).openStream();
+            parser.parse(in, defaultHandler);
+        } finally {
+            if (in != null) {
+                in.close();
+            }
+        }
+    }
+
+    public void scrape(File file) throws Exception {
+        InputStream in = null;
+        try {
+            in = new FileInputStream(file);
             parser.parse(in, defaultHandler);
         } finally {
             if (in != null) {

@@ -59,6 +59,14 @@ class Story implements Serializable {
         return new File(getStoryDir(context, name), "save");
     }
 
+    public static File getCoverImageFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "cover");
+    }
+
+    public static File getMetadataFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "metadata");
+    }
+
     public File getDir(Context context) {
         return getStoryDir(context, name);
     }
@@ -73,6 +81,14 @@ class Story implements Serializable {
 
     public File getSaveFile(Context context) {
         return getSaveFile(context, name);
+    }
+
+    public File getCoverImageFile(Context context) {
+        return getCoverImageFile(context, name);
+    }
+
+    public File getMetadataFile(Context context) {
+        return getMetadataFile(context, name);
     }
 
     public boolean isDownloaded(Context context) {
@@ -112,47 +128,45 @@ class Story implements Serializable {
                     zipFile.delete();
                 }
             }
-            DataInputStream in = null;
+            Blorb blorb = null;
             try {
-                in = new DataInputStream(new FileInputStream(tmpFile));
-                int type = in.readInt();
-                int count = in.readInt();
-                int type2 = in.readInt();
-                if (type != 0x464f524d /*FORM*/ || type2 != 0x49465253 /*IFRS*/) {
-                    tmpFile.renameTo(getFile(context));
-                } else {
-                    for (;;) {
-                        type = in.readInt();
-                        count = in.readInt();
-                        if (type != 0x5a434f44 /*ZCOD*/) {
-                            in.skip(count);
-                        } else {
-                            File tmp2File = File.createTempFile("tmp","tmp",getDir(context));
-                            FileOutputStream out = null;
-                            try {
-                                out = new FileOutputStream(tmp2File);
-                                byte[] buffer = new byte[8192];
-                                int total = 0;
-                                for (int n = in.read(buffer); n >= 0 && total < count; n = in.read(buffer)) {
-                                    out.write(buffer, 0, Math.min(n, count - total));
-                                    total += n;
-                                }
-                                tmp2File.renameTo(getFile(context));
-                            } finally {
-                                if (out != null) {
-                                    out.close();
-                                }
-                                if (tmp2File.exists()) {
-                                    tmp2File.delete();
-                                }
-                            }
+                blorb = new Blorb(tmpFile);
+            } catch (IOException e) {
+            }
+            if (blorb == null) {
+                tmpFile.renameTo(getFile(context));
+            } else {
+                try {
+                    //... use IFmd or Fspc for cover image
+                    for (Blorb.Chunk chunk : blorb.chunks()) {
+                        switch (chunk.getId()) {
+                        case Blorb.IFmd:
+                            writeBlorbChunk(context, chunk, getMetadataFile(context));
                             break;
+                        default:
                         }
                     }
-                }
-            } finally {
-                if (in != null) {
-                    in.close();
+                    for (Blorb.Resource res : blorb.resources()) {
+                        Blorb.Chunk chunk = res.getChunk();
+                        if (chunk == null) {
+                            continue;
+                        }
+                        switch (res.getUsage()) {
+                        case Blorb.Exec:
+                            if (chunk.getId() == Blorb.ZCOD) {
+                                writeBlorbChunk(context, chunk, getFile(context));
+                            }
+                            break;
+                        case Blorb.Pict:
+                            if (chunk.getId() == Blorb.PNG || chunk.getId() == Blorb.JPEG) {
+                                writeBlorbChunk(context, chunk, getCoverImageFile(context));
+                            }
+                            break;
+                        default:
+                        }
+                    }
+                } finally {
+                    blorb.close();
                 }
             }
         } finally {
@@ -185,6 +199,27 @@ class Story implements Serializable {
             if (in != null) {
                 in.close();
             }
+            if (tmpFile.exists()) {
+                tmpFile.delete();
+            }
+        }
+    }
+
+    protected void writeBlorbChunk(Context context, Blorb.Chunk chunk, File file) throws IOException {
+        getDir(context).mkdir();
+        File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
+        try {
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream(tmpFile);
+                chunk.read(out);
+            } finally {
+                if (out != null) {
+                    out.close();
+                }
+            }
+            tmpFile.renameTo(file);
+        } finally {
             if (tmpFile.exists()) {
                 tmpFile.delete();
             }

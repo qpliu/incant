@@ -2,12 +2,14 @@ package com.yrek.incant;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -74,6 +76,7 @@ public class Incant extends Activity {
             final Button play = (Button) convertView.findViewById(R.id.play);
             final Button delete = (Button) convertView.findViewById(R.id.delete);
             final ProgressBar progressBar = (ProgressBar) convertView.findViewById(R.id.progressbar);
+            final ImageView cover = (ImageView) convertView.findViewById(R.id.cover);
             View info = convertView.findViewById(R.id.info);
             progressBar.setVisibility(View.GONE);
             if (story == null) {
@@ -81,26 +84,27 @@ public class Incant extends Activity {
                 download.setVisibility(View.VISIBLE);
                 play.setVisibility(View.GONE);
                 delete.setVisibility(View.GONE);
-                    play.setVisibility(View.GONE);
-                    delete.setVisibility(View.GONE);
-                    download.setVisibility(View.VISIBLE);
-                    download.setText(R.string.scrape);
-                    download.setOnClickListener(new View.OnClickListener() {
-                        @Override public void onClick(View v) {
-                            download.setVisibility(View.GONE);
-                            progressBar.setVisibility(View.VISIBLE);
-                            new Thread() {
-                                @Override public void run() {
-                                    try {
-                                        storyLister.scrape();
-                                    } catch (Exception e) {
-                                        Log.wtf(TAG,e);
-                                    }
-                                    storyList.post(refreshStoryList);
+                play.setVisibility(View.GONE);
+                delete.setVisibility(View.GONE);
+                cover.setVisibility(View.GONE);
+                download.setVisibility(View.VISIBLE);
+                download.setText(R.string.scrape);
+                download.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        download.setVisibility(View.GONE);
+                        progressBar.setVisibility(View.VISIBLE);
+                        new Thread() {
+                            @Override public void run() {
+                                try {
+                                    storyLister.scrape();
+                                } catch (Exception e) {
+                                    Log.wtf(TAG,e);
                                 }
-                            }.start();
-                        }
-                    });
+                                storyList.post(refreshStoryList);
+                            }
+                        }.start();
+                    }
+                });
             } else {
                 info.setVisibility(View.VISIBLE);
                 ((TextView) convertView.findViewById(R.id.name)).setText(story.getName());
@@ -123,9 +127,16 @@ public class Incant extends Activity {
                             refreshStoryList();
                         }
                     });
+                    if (story.getCoverImageFile(Incant.this).exists()) {
+                        cover.setVisibility(View.VISIBLE);
+                        cover.setImageBitmap(BitmapFactory.decodeFile(story.getCoverImageFile(Incant.this).getPath()));
+                    } else {
+                        cover.setVisibility(View.GONE);
+                    }
                 } else {
                     play.setVisibility(View.GONE);
                     delete.setVisibility(View.GONE);
+                    cover.setVisibility(View.GONE);
                     synchronized (downloading) {
                         if (downloading.contains(story.getName())) {
                             download.setVisibility(View.GONE);
