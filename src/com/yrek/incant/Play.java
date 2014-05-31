@@ -67,15 +67,9 @@ public class Play extends Activity {
         screenBuffer = new SpannableStringBuilder();
         screenWidth = 0;
         screenHeight = 0;
-        textView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                synchronized (screenBuffer) {
-                    screenWidth = (right - left) / 18; //... figure this out
-                    screenHeight = (bottom - top) / textView.getLineHeight();
-                    screenBuffer.notify();
-                }
-            }
-        });
+        findViewById(R.id.onexone).addOnLayoutChangeListener(textMeasurer);
+        findViewById(R.id.twoxtwo).addOnLayoutChangeListener(textMeasurer);
+        textView.addOnLayoutChangeListener(textMeasurer);
         skipButton.setOnClickListener(skipButtonOnClickListener);
         keyboardButton.setOnClickListener(keyboardButtonOnClickListener);
         editText.setOnFocusChangeListener(editTextOnFocusChangeListener);
@@ -155,6 +149,32 @@ public class Play extends Activity {
         screenWidth = 0;
         screenHeight = 0;
     }
+
+    private final View.OnLayoutChangeListener textMeasurer = new View.OnLayoutChangeListener() {
+        private int w = 0, h = 0, w1 = 0, h1 = 0, w2 = 0, h2 = 0;
+
+        @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            if (screenWidth != 0) {
+                return;
+            }
+            switch (v.getId()) {
+            case R.id.text: w = right - left; h = bottom - top; break;
+            case R.id.onexone: w1 = right - left; h1 = bottom - top; break;
+            case R.id.twoxtwo: w2 = right - left; h2 = bottom - top; break;
+            default:
+            }
+            Log.d(TAG,"onLayoutChange:w,h="+w+","+h+",w1,h1="+w1+","+h1+",w2,h2="+w2+","+h2);
+            if (w != 0 && w1 != 0 && w2 != 0) {
+                int charw = w2 - w1, charh = h2 - h1;
+                int xmargin = w1 - charw, ymargin = h1 - charh;
+                synchronized (screenBuffer) {
+                    screenWidth = (w - xmargin) / charw;
+                    screenHeight = (h - ymargin) / charh;
+                    screenBuffer.notify();
+                }
+            }
+        }
+    };
 
     private class ZQuitException extends RuntimeException {}
 

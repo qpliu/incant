@@ -6,6 +6,22 @@
    android:keepScreenOn="true"
    >
   <TextView  
+     android:layout_width="wrap_content" 
+     android:layout_height="wrap_content" 
+     android:id="@+id/onexone"
+     android:typeface="monospace"
+     android:text="X"
+     android:alpha="0"
+     />
+  <TextView  
+     android:layout_width="wrap_content" 
+     android:layout_height="wrap_content" 
+     android:id="@+id/twoxtwo"
+     android:typeface="monospace"
+     android:text="XX\nXX"
+     android:alpha="0"
+     />
+  <TextView  
      android:layout_width="fill_parent" 
      android:layout_height="wrap_content" 
      android:id="@+id/name"
