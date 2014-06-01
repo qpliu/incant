@@ -87,24 +87,37 @@ public class Incant extends Activity {
                 play.setVisibility(View.GONE);
                 delete.setVisibility(View.GONE);
                 cover.setVisibility(View.GONE);
-                download.setVisibility(View.VISIBLE);
-                download.setText(R.string.scrape);
-                download.setOnClickListener(new View.OnClickListener() {
-                    @Override public void onClick(View v) {
+                synchronized (downloading) {
+                    if (downloading.contains("")) {
                         download.setVisibility(View.GONE);
                         progressBar.setVisibility(View.VISIBLE);
-                        new Thread() {
-                            @Override public void run() {
-                                try {
-                                    storyLister.scrape();
-                                } catch (Exception e) {
-                                    Log.wtf(TAG,e);
+                    } else {
+                        download.setVisibility(View.VISIBLE);
+                        download.setText(R.string.scrape);
+                        download.setOnClickListener(new View.OnClickListener() {
+                            @Override public void onClick(View v) {
+                                download.setVisibility(View.GONE);
+                                progressBar.setVisibility(View.VISIBLE);
+                                synchronized (downloading) {
+                                    downloading.add("");
                                 }
-                                storyList.post(refreshStoryList);
+                                new Thread() {
+                                    @Override public void run() {
+                                        try {
+                                            storyLister.scrape();
+                                        } catch (Exception e) {
+                                            Log.wtf(TAG,e);
+                                        }
+                                        synchronized (downloading) {
+                                            downloading.remove("");
+                                        }
+                                        storyList.post(refreshStoryList);
+                                    }
+                                }.start();
                             }
-                        }.start();
+                        });
                     }
-                });
+                }
             } else {
                 info.setVisibility(View.VISIBLE);
                 ((TextView) convertView.findViewById(R.id.name)).setText(story.getName());
@@ -148,11 +161,11 @@ public class Incant extends Activity {
                                 @Override public void onClick(View v) {
                                     download.setVisibility(View.GONE);
                                     progressBar.setVisibility(View.VISIBLE);
+                                    synchronized (downloading) {
+                                        downloading.add(story.getName());
+                                    }
                                     new Thread() {
                                         @Override public void run() {
-                                            synchronized (downloading) {
-                                                downloading.add(story.getName());
-                                            }
                                             try {
                                                 story.download(Incant.this);
                                             } catch (Exception e) {
