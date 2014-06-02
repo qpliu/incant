@@ -1,8 +1,11 @@
 package com.yrek.incant;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,27 +23,56 @@ class Story implements Serializable {
     private static final String TAG = Story.class.getSimpleName();
 
     private final String name;
+    private final String author;
+    private final String headline;
     private final String description;
-    private final URL url;
+    private final URL downloadURL;
     private final String zipEntry;
+    private final URL imageURL;
+    private transient Metadata metadata;
+    private transient Bitmap coverImageBitmap;
 
-    Story(String name, String description, URL url) {
-        this(name, description, url, null);
-    }
-
-    Story(String name, String description, URL url, String zipEntry) {
+    Story(String name, String author, String headline, String description, URL downloadURL, String zipEntry, URL imageURL) {
         this.name = name;
+        this.author = author;
+        this.headline = headline;
         this.description = description;
-        this.url = url;
+        this.downloadURL = downloadURL;
         this.zipEntry = zipEntry;
+        this.imageURL = imageURL;
     }
 
-    public String getName() {
+    public String getName(Context context) {
         return name;
     }
 
-    public String getDescription() {
-        return description;
+    private Metadata getMetadata(Context context) {
+        if (metadata != null || !getMetadataFile(context).exists()) {
+            return metadata;
+        }
+        Metadata m = new Metadata();
+        try {
+            new XMLScraper(m).scrape(getMetadataFile(context));
+            metadata = m;
+        } catch (Exception e) {
+            Log.wtf(TAG,e);
+        }
+        return metadata;
+    }
+
+    public String getAuthor(Context context) {
+        Metadata m = getMetadata(context);
+        return m != null ? m.author : author;
+    }
+
+    public String getHeadline(Context context) {
+        Metadata m = getMetadata(context);
+        return m != null ? m.headline : headline;
+    }
+
+    public String getDescription(Context context) {
+        Metadata m = getMetadata(context);
+        return m != null ? m.description : description;
     }
 
     public static File getRootDir(Context context) {
@@ -87,6 +119,16 @@ class Story implements Serializable {
         return getCoverImageFile(context, name);
     }
 
+    public Bitmap getCoverImageBitmap(Context context) {
+        if (coverImageBitmap == null) {
+            File file = getCoverImageFile(context);
+            if (file.exists()) {
+                coverImageBitmap = BitmapFactory.decodeFile(file.getPath());
+            }
+        }
+        return coverImageBitmap;
+    }
+
     public File getMetadataFile(Context context) {
         return getMetadataFile(context, name);
     }
@@ -100,14 +142,14 @@ class Story implements Serializable {
         File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         try {
             if (zipEntry == null) {
-                downloadTo(context, tmpFile);
+                downloadTo(context, downloadURL, tmpFile);
             } else {
                 File zipFile = File.createTempFile("zip","tmp",getDir(context));
                 ZipFile zf = null;
                 InputStream in = null;
                 FileOutputStream out = null;
                 try {
-                    downloadTo(context, zipFile);
+                    downloadTo(context, downloadURL, zipFile);
                     zf = new ZipFile(zipFile);
                     in = zf.getInputStream(zf.getEntry(zipEntry));
                     out = new FileOutputStream(tmpFile);
@@ -137,14 +179,21 @@ class Story implements Serializable {
                 tmpFile.renameTo(getFile(context));
             } else {
                 try {
-                    //... use IFmd or Fspc for cover image
+                    int coverImage = -1;
                     for (Blorb.Chunk chunk : blorb.chunks()) {
                         switch (chunk.getId()) {
                         case Blorb.IFmd:
                             writeBlorbChunk(context, chunk, getMetadataFile(context));
                             break;
+                        case Blorb.Fspc:
+                            coverImage = new DataInputStream(new ByteArrayInputStream(chunk.read())).readInt();
+                            break;
                         default:
                         }
+                    }
+                    Metadata md = getMetadata(context);
+                    if (md != null && md.coverpicture != null) {
+                        coverImage = Integer.parseInt(md.coverpicture);
                     }
                     for (Blorb.Resource res : blorb.resources()) {
                         Blorb.Chunk chunk = res.getChunk();
@@ -158,7 +207,7 @@ class Story implements Serializable {
                             }
                             break;
                         case Blorb.Pict:
-                            if (chunk.getId() == Blorb.PNG || chunk.getId() == Blorb.JPEG) {
+                            if (res.getNumber() == coverImage && (chunk.getId() == Blorb.PNG || chunk.getId() == Blorb.JPEG)) {
                                 writeBlorbChunk(context, chunk, getCoverImageFile(context));
                             }
                             break;
@@ -174,9 +223,12 @@ class Story implements Serializable {
                 tmpFile.delete();
             }
         }
+        if (imageURL != null && !getCoverImageFile(context).exists()) {
+            downloadTo(context, imageURL, getCoverImageFile(context));
+        }
     }
 
-    protected void downloadTo(Context context, File file) throws IOException {
+    protected void downloadTo(Context context, URL url, File file) throws IOException {
         getDir(context).mkdir();
         File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         InputStream in = null;
@@ -235,6 +287,34 @@ class Story implements Serializable {
             }
         }
         dir.delete();
+    }
+
+    private class Metadata implements XMLScraper.Handler {
+        String author;
+        String headline;
+        String description;
+        String coverpicture;
+
+        @Override
+        public void startDocument() {
+        }
+
+        @Override
+        public void endDocument() {
+        }
+
+        @Override
+        public void element(String path, String value) {
+            if ("ifindex/story/bibliographic/author".equals(path)) {
+                author = value;
+            } else if ("ifindex/story/bibliographic/headline".equals(path)) {
+                headline = value;
+            } else if ("ifindex/story/bibliographic/description".equals(path)) {
+                description = value;
+            } else if ("ifindex/story/zcode/coverpicture".equals(path)) {
+                coverpicture = value;
+            }
+        }
     }
 
     public String chooseInput(List<String> options) {

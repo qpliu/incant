@@ -55,12 +55,12 @@ class StoryLister {
     }
 
     private void addStory(Story story, ArrayList<Story> stories) {
-        String name = story.getName();
+        String name = story.getName(context);
         if (name == null || name.indexOf('/') >= 0 || name.equals(".") || name.equals("..")) {
             return;
         }
         for (Story s : stories) {
-            if (name.equals(s.getName())) {
+            if (name.equals(s.getName(context))) {
                 return;
             }
         }
@@ -73,29 +73,14 @@ class StoryLister {
             if (!storyFile.exists()) {
                 continue;
             }
-            File saveFile = Story.getSaveFile(context, file.getName());
-            String description;
-            if (!saveFile.exists()) {
-                if (storyFile.lastModified() + 86400000L > System.currentTimeMillis()) {
-                    description = context.getString(R.string.downloaded_recently, storyFile.lastModified());
-                } else {
-                    description = context.getString(R.string.downloaded_at, storyFile.lastModified());
-                }
-            } else {
-                if (saveFile.lastModified() + 86400000L > System.currentTimeMillis()) {
-                    description = context.getString(R.string.saved_recently, saveFile.lastModified());
-                } else {
-                    description = context.getString(R.string.saved_at, saveFile.lastModified());
-                }
-            }
-            addStory(new Story(file.getName(), description, null), stories);
+            addStory(new Story(file.getName(), null, null, null, null, null, null), stories);
         }
     }
 
     private void addInitial(ArrayList<Story> stories) throws IOException {
         String[] initial = context.getResources().getStringArray(R.array.initial_story_list);
-        for (int i = 0; i + 3 < initial.length; i += 4) {
-            addStory(new Story(initial[i], initial[i+1], new URL(initial[i+2]), initial[i+3].length() > 0 ? initial[i+3] : null), stories);
+        for (int i = 0; i + 6 < initial.length; i += 7) {
+            addStory(new Story(initial[i], initial[i+1], initial[i+2], initial[i+3], new URL(initial[i+4]), initial[i+5].length() > 0 ? initial[i+5] : null, initial[i+6].length() > 0 ? new URL(initial[i+6]) : null), stories);
         }
     }
 
@@ -120,10 +105,10 @@ class StoryLister {
                 in = new DataInputStream(new FileInputStream(cacheFile));
                 for (;;) {
                     String name = in.readUTF();
-                    String description = in.readUTF();
+                    String author = in.readUTF();
                     String url = in.readUTF();
                     String zipFile = in.readUTF();
-                    addStory(new Story(name, description, new URL(url), zipFile.length() == 0 ? null : zipFile), stories);
+                    addStory(new Story(name, author.length() == 0 ? null : author, null, null, new URL(url), zipFile.length() == 0 ? null : zipFile, null), stories);
                 }
             } catch (FileNotFoundException e) {
             } catch (EOFException e) {
@@ -175,9 +160,9 @@ class StoryLister {
             }
         }
 
-        void writeStory(DataOutputStream out, String name, String description, String url, String zipFile) throws IOException {
+        void writeStory(DataOutputStream out, String name, String author, String url, String zipFile) throws IOException {
             out.writeUTF(name);
-            out.writeUTF(description == null ? "" : description);
+            out.writeUTF(author == null ? "" : author);
             out.writeUTF(url);
             out.writeUTF(zipFile == null ? "" : zipFile);
         }
@@ -297,7 +282,7 @@ class StoryLister {
                 @Override public void scrape(String line) throws IOException {
                     Matcher m = pattern.matcher(line);
                     while (m.find()) {
-                        writeStory(out, m.group(3), m.group(1), downloadURL + m.group(2), "");
+                        writeStory(out, m.group(3), "", downloadURL + m.group(2), "");
                     }
                 }
             });

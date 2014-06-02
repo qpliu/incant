@@ -14,6 +14,7 @@ import android.text.SpannableStringBuilder;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -49,7 +50,6 @@ public class Play extends Activity {
     private SpannableStringBuilder screenBuffer;
     private int screenWidth;
     private int screenHeight;
-    private int inputtextColor;
     private int textColor;
     private int backgroundColor;
 
@@ -58,7 +58,7 @@ public class Play extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.play);
         story = (Story) getIntent().getSerializableExtra(STORY);
-        ((TextView) findViewById(R.id.name)).setText(story.getName());
+        ((TextView) findViewById(R.id.name)).setText(story.getName(Play.this));
         textView = (TextView) findViewById(R.id.text);
         keyboardButton = (Button) findViewById(R.id.keyboard);
         skipButton = (Button) findViewById(R.id.skip);
@@ -74,7 +74,6 @@ public class Play extends Activity {
         keyboardButton.setOnClickListener(keyboardButtonOnClickListener);
         editText.setOnFocusChangeListener(editTextOnFocusChangeListener);
         editText.setOnEditorActionListener(editTextOnEditorActionListener);
-        inputtextColor = getResources().getColor(R.color.inputtext);
         textColor = getResources().getColor(R.color.text);
         backgroundColor = getResources().getColor(R.color.background);
     }
@@ -506,7 +505,7 @@ public class Play extends Activity {
                 screenBuffer.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), start, end, 0);
                 break;
             case 128:
-                screenBuffer.setSpan(new ForegroundColorSpan(inputtextColor), start, end, 0);
+                screenBuffer.setSpan(new TextAppearanceSpan(Play.this, R.style.inputtext), start, end, 0);
             default:
             }
         }

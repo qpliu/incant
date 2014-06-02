@@ -1,43 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
    xmlns:android="http://schemas.android.com/apk/res/android"
    android:layout_width="wrap_content"
    android:layout_height="wrap_content"
-   android:orientation="horizontal"
    >
+  <RelativeLayout
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:layout_alignParentLeft="true"
+     android:id="@+id/buttons"
+     >
+    <Button
+       android:layout_width="wrap_content"
+       android:layout_height="40dp"
+       android:id="@+id/download"
+       android:text="@string/download"
+       />
+    <ProgressBar
+       android:layout_width="wrap_content"
+       android:layout_height="40dp"
+       android:id="@+id/progressbar"
+       android:indeterminate="true"
+       />
+    <Button
+       android:layout_width="40dp"
+       android:layout_height="40dp"
+       android:id="@+id/play"
+       android:text="@string/play"
+       android:textSize="8dp"
+       />
+    <ImageView
+       android:layout_width="40dp"
+       android:layout_height="40dp"
+       android:id="@+id/cover"
+       android:scaleType="centerInside"
+       />
+  </RelativeLayout>
   <Button
      android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:id="@+id/download"
-     android:text="@string/download"
-     />
-  <ProgressBar
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:id="@+id/progressbar"
-     android:indeterminate="true"
-     />
-  <Button
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
-     android:id="@+id/play"
-     android:text="@string/play"
-     />
-  <Button
-     android:layout_width="wrap_content"
-     android:layout_height="wrap_content"
+     android:layout_height="40dp"
+     android:layout_alignParentRight="true"
      android:id="@+id/delete"
      android:text="@string/delete"
-     />
-  <ImageView
-     android:layout_width="40dp"
-     android:layout_height="40dp"
-     android:id="@+id/cover"
-     android:scaleType="centerInside"
+     android:textSize="8dp"
      />
   <LinearLayout
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
+     android:layout_toRightOf="@id/buttons"
+     android:layout_toLeftOf="@id/delete"
      android:orientation="vertical"
      android:id="@+id/info"
      >
@@ -45,7 +56,6 @@
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
        android:id="@+id/name"
-       android:textStyle="bold"
        android:singleLine="true"
        android:ellipsize="end"
        />
@@ -57,4 +67,4 @@
        android:ellipsize="end"
        />
   </LinearLayout>
-</LinearLayout>
+</RelativeLayout>

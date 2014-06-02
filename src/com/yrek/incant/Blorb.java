@@ -21,6 +21,7 @@ public class Blorb implements Closeable {
     public static final int JPEG = 0x4a504547;
     public static final int ZCOD = 0x5a434f44;
     public static final int IFmd = 0x49466d64;
+    public static final int Fspc = 0x46737063;
 
     private final RandomAccessFile file;
     private final TreeMap<Long,Chunk> chunks = new TreeMap<Long,Chunk>();
