@@ -30,5 +30,16 @@
 	 android:value="Incant"
 	 />
     </activity>
+    <activity
+       android:name=".StoryDetails"
+       android:label="@string/app_name"
+       android:exported="false"
+       android:parentActivityName="Incant"
+       >
+      <meta-data
+	 android:name="android.support.PARENT_ACTIVITY"
+	 android:value="Incant"
+	 />
+    </activity>
   </application>
 </manifest>

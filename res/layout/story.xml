@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
    xmlns:android="http://schemas.android.com/apk/res/android"
-   android:layout_width="wrap_content"
+   android:layout_width="match_parent"
    android:layout_height="wrap_content"
    >
   <RelativeLayout
@@ -10,11 +10,13 @@
      android:layout_alignParentLeft="true"
      android:id="@+id/buttons"
      >
-    <Button
+    <TextView
        android:layout_width="wrap_content"
        android:layout_height="40dp"
        android:id="@+id/download"
        android:text="@string/download"
+       android:textSize="20dp"
+       android:gravity="center"
        />
     <ProgressBar
        android:layout_width="wrap_content"
@@ -22,12 +24,13 @@
        android:id="@+id/progressbar"
        android:indeterminate="true"
        />
-    <Button
+    <TextView
        android:layout_width="40dp"
        android:layout_height="40dp"
        android:id="@+id/play"
        android:text="@string/play"
-       android:textSize="8dp"
+       android:textSize="10dp"
+       android:gravity="center"
        />
     <ImageView
        android:layout_width="40dp"
@@ -36,19 +39,11 @@
        android:scaleType="centerInside"
        />
   </RelativeLayout>
-  <Button
-     android:layout_width="wrap_content"
-     android:layout_height="40dp"
-     android:layout_alignParentRight="true"
-     android:id="@+id/delete"
-     android:text="@string/delete"
-     android:textSize="8dp"
-     />
   <LinearLayout
      android:layout_width="wrap_content"
      android:layout_height="wrap_content"
      android:layout_toRightOf="@id/buttons"
-     android:layout_toLeftOf="@id/delete"
+     android:layout_alignParentRight="true"
      android:orientation="vertical"
      android:id="@+id/info"
      >

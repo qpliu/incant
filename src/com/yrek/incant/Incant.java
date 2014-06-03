@@ -20,6 +20,7 @@ import java.util.HashSet;
 
 public class Incant extends Activity {
     private static final String TAG = Incant.class.getSimpleName();
+    static final String STORY = "STORY";
 
     private StoryLister storyLister;
     private ListView storyList;
@@ -137,29 +138,28 @@ public class Incant extends Activity {
             if (convertView == null) {
                 convertView = Incant.this.getLayoutInflater().inflate(R.layout.story, parent, false);
             }
-            final Button download = (Button) convertView.findViewById(R.id.download);
-            final Button play = (Button) convertView.findViewById(R.id.play);
-            final Button delete = (Button) convertView.findViewById(R.id.delete);
+            final TextView download = (TextView) convertView.findViewById(R.id.download);
+            final TextView play = (TextView) convertView.findViewById(R.id.play);
             final ProgressBar progressBar = (ProgressBar) convertView.findViewById(R.id.progressbar);
             final ImageView cover = (ImageView) convertView.findViewById(R.id.cover);
             View info = convertView.findViewById(R.id.info);
             progressBar.setVisibility(View.GONE);
             if (story == null) {
                 info.setVisibility(View.GONE);
-                download.setVisibility(View.VISIBLE);
                 play.setVisibility(View.GONE);
-                delete.setVisibility(View.GONE);
-                play.setVisibility(View.GONE);
-                delete.setVisibility(View.GONE);
                 cover.setVisibility(View.GONE);
                 synchronized (downloading) {
                     if (downloading.contains("")) {
                         download.setVisibility(View.GONE);
                         progressBar.setVisibility(View.VISIBLE);
+                        convertView.setOnLongClickListener(null);
+                        convertView.setOnClickListener(null);
                     } else {
                         download.setVisibility(View.VISIBLE);
+                        progressBar.setVisibility(View.GONE);
                         download.setText(R.string.scrape);
-                        download.setOnClickListener(new View.OnClickListener() {
+                        convertView.setOnLongClickListener(null);
+                        convertView.setOnClickListener(new View.OnClickListener() {
                             @Override public void onClick(View v) {
                                 download.setVisibility(View.GONE);
                                 progressBar.setVisibility(View.VISIBLE);
@@ -187,23 +187,21 @@ public class Incant extends Activity {
                 info.setVisibility(View.VISIBLE);
                 ((TextView) convertView.findViewById(R.id.name)).setText(makeName(story));
                 ((TextView) convertView.findViewById(R.id.description)).setText(makeDescription(story));
+                convertView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override public boolean onLongClick(View v) {
+                        Intent intent = new Intent(Incant.this, StoryDetails.class);
+                        intent.putExtra(STORY, story);
+                        startActivity(intent);
+                        return true;
+                    }
+                });
                 if (story.isDownloaded(Incant.this)) {
                     download.setVisibility(View.GONE);
-                    delete.setVisibility(View.VISIBLE);
-                    View.OnClickListener clickPlay = new View.OnClickListener() {
+                    convertView.setOnClickListener(new View.OnClickListener() {
                         @Override public void onClick(View v) {
-                            Log.d(TAG, "play:"+story.getName(Incant.this));
                             Intent intent = new Intent(Incant.this, Play.class);
-                            intent.putExtra(Play.STORY, story);
+                            intent.putExtra(STORY, story);
                             startActivity(intent);
-                        }
-                    };
-                    play.setOnClickListener(clickPlay);
-                    cover.setOnClickListener(clickPlay);
-                    delete.setOnClickListener(new View.OnClickListener() {
-                        @Override public void onClick(View v) {
-                            story.delete(Incant.this);
-                            refreshStoryList();
                         }
                     });
                     if (story.getCoverImageFile(Incant.this).exists()) {
@@ -216,16 +214,16 @@ public class Incant extends Activity {
                     }
                 } else {
                     play.setVisibility(View.GONE);
-                    delete.setVisibility(View.GONE);
                     cover.setVisibility(View.GONE);
                     synchronized (downloading) {
                         if (downloading.contains(story.getName(Incant.this))) {
                             download.setVisibility(View.GONE);
                             progressBar.setVisibility(View.VISIBLE);
+                            convertView.setOnClickListener(null);
                         } else {
                             download.setVisibility(View.VISIBLE);
                             download.setText(R.string.download);
-                            download.setOnClickListener(new View.OnClickListener() {
+                            convertView.setOnClickListener(new View.OnClickListener() {
                                 @Override public void onClick(View v) {
                                     download.setVisibility(View.GONE);
                                     progressBar.setVisibility(View.VISIBLE);

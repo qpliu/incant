@@ -35,7 +35,6 @@ import com.zaxsoft.zmachine.ZUserInterface;
 
 public class Play extends Activity {
     private static final String TAG = Play.class.getSimpleName();
-    static final String STORY = "STORY";
 
     private Story story;
     private ZCPU zcpu;
@@ -57,7 +56,7 @@ public class Play extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.play);
-        story = (Story) getIntent().getSerializableExtra(STORY);
+        story = (Story) getIntent().getSerializableExtra(Incant.STORY);
         ((TextView) findViewById(R.id.name)).setText(story.getName(Play.this));
         textView = (TextView) findViewById(R.id.text);
         keyboardButton = (Button) findViewById(R.id.keyboard);
