@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
+import android.util.Xml;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -12,11 +13,14 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
 import java.util.zip.ZipFile;
+
+import org.xmlpull.v1.XmlSerializer;
 
 class Story implements Serializable {
     private static final long serializableVersionID = 0L;
@@ -223,8 +227,19 @@ class Story implements Serializable {
                 tmpFile.delete();
             }
         }
-        if (imageURL != null && !getCoverImageFile(context).exists()) {
-            downloadTo(context, imageURL, getCoverImageFile(context));
+        try {
+            if (imageURL != null && !getCoverImageFile(context).exists()) {
+                downloadTo(context, imageURL, getCoverImageFile(context));
+            }
+        } catch (Exception e) {
+            Log.wtf(TAG,e);
+        }
+        try {
+            if (!getMetadataFile(context).exists()) {
+                writeMetadata(context, getMetadataFile(context));
+            }
+        } catch (Exception e) {
+            Log.wtf(TAG,e);
         }
     }
 
@@ -313,6 +328,51 @@ class Story implements Serializable {
                 description = value;
             } else if ("ifindex/story/zcode/coverpicture".equals(path)) {
                 coverpicture = value;
+            }
+        }
+    }
+
+    protected void writeMetadata(Context context, File file) throws IOException {
+        getDir(context).mkdir();
+        File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
+        try {
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream(tmpFile);
+                XmlSerializer xmlSerializer = Xml.newSerializer();
+                xmlSerializer.setOutput(out, "UTF-8");
+                xmlSerializer.startDocument("UTF-8", null);
+                xmlSerializer.startTag("http://babel.ifarchive.org/protocol/iFiction/", "ifindex");
+                xmlSerializer.startTag(null, "story");
+                xmlSerializer.startTag(null, "bibliographic");
+                if (author != null) {
+                    xmlSerializer.startTag(null, "author");
+                    xmlSerializer.text(author);
+                    xmlSerializer.endTag(null, "author");
+                }
+                if (headline != null) {
+                    xmlSerializer.startTag(null, "headline");
+                    xmlSerializer.text(headline);
+                    xmlSerializer.endTag(null, "headline");
+                }
+                if (description != null) {
+                    xmlSerializer.startTag(null, "description");
+                    xmlSerializer.text(description);
+                    xmlSerializer.endTag(null, "description");
+                }
+                xmlSerializer.endTag(null, "bibliographic");
+                xmlSerializer.endTag(null, "story");
+                xmlSerializer.endTag("http://babel.ifarchive.org/protocol/iFiction/", "ifindex");
+                xmlSerializer.endDocument();
+            } finally {
+                if (out != null) {
+                    out.close();
+                }
+            }
+            tmpFile.renameTo(file);
+        } finally {
+            if (tmpFile.exists()) {
+                tmpFile.delete();
             }
         }
     }
