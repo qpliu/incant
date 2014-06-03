@@ -425,6 +425,15 @@ public class Play extends Activity {
             }
         };
 
+        private final Runnable inputReceived = new Runnable() {
+            @Override
+            public void run() {
+                keyboardButton.setVisibility(View.GONE);
+                skipButton.setVisibility(View.GONE);
+                refreshScreen();
+            }
+        };
+
         private void print(char c) {
             int windowHeight = ymax[currentWindow] - ymin[currentWindow];
             if (y[currentWindow] >= windowHeight) {
@@ -730,6 +739,7 @@ public class Play extends Activity {
             print('\n');
             textStyle = saveTextStyle;
             currentWindow = saveCurrentWindow;
+            textView.post(inputReceived);
             sb.append(inputLineResults);
             return 10;
         }
@@ -750,6 +760,7 @@ public class Play extends Activity {
                 throw new ZQuitException();
             }
             Log.d(TAG,"readChar:"+inputCharResults);
+            textView.post(inputReceived);
             return (int) inputCharResults;
         }
 
