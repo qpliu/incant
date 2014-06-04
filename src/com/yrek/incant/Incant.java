@@ -3,10 +3,14 @@ package com.yrek.incant;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
+import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -34,6 +38,10 @@ public class Incant extends Activity {
     private TextAppearanceSpan saveTimeStyle;
     private TextAppearanceSpan downloadTimeStyle;
 
+    private Handler handler;
+    private HandlerThread handlerThread;
+    private LruCache<String,Bitmap> coverImageCache;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +58,22 @@ public class Incant extends Activity {
         descriptionStyle = new TextAppearanceSpan(this, R.style.storydescription);
         saveTimeStyle = new TextAppearanceSpan(this, R.style.storysavetime);
         downloadTimeStyle = new TextAppearanceSpan(this, R.style.storydownloadtime);
+
+        coverImageCache = new LruCache<String,Bitmap>(30);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        handlerThread = new HandlerThread("Incant.HandlerThread");
+        handlerThread.start();
+        handler = new Handler(handlerThread.getLooper());
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        handlerThread.quit();
     }
 
     @Override
@@ -135,6 +159,7 @@ public class Incant extends Activity {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             final Story story = getItem(position);
+            final String storyName = story == null ? null : story.getName(Incant.this);
             if (convertView == null) {
                 convertView = Incant.this.getLayoutInflater().inflate(R.layout.story, parent, false);
             }
@@ -143,6 +168,7 @@ public class Incant extends Activity {
             final ProgressBar progressBar = (ProgressBar) convertView.findViewById(R.id.progressbar);
             final ImageView cover = (ImageView) convertView.findViewById(R.id.cover);
             View info = convertView.findViewById(R.id.info);
+            cover.setTag(null);
             progressBar.setVisibility(View.GONE);
             if (story == null) {
                 info.setVisibility(View.GONE);
@@ -205,19 +231,36 @@ public class Incant extends Activity {
                             startActivity(intent);
                         }
                     });
+                    play.setVisibility(View.VISIBLE);
+                    cover.setVisibility(View.GONE);
                     if (story.getCoverImageFile(Incant.this).exists()) {
-                        play.setVisibility(View.GONE);
-                        cover.setVisibility(View.VISIBLE);
-                        cover.setImageBitmap(story.getCoverImageBitmap(Incant.this));
-                    } else {
-                        play.setVisibility(View.VISIBLE);
-                        cover.setVisibility(View.GONE);
+                        cover.setTag(story);
+                        handler.post(new Runnable() {
+                            @Override public void run() {
+                                Bitmap image = coverImageCache.get(storyName);
+                                if (image == null) {
+                                    image = story.getCoverImageBitmap(Incant.this);
+                                    coverImageCache.put(storyName, image);
+                                }
+                                final Bitmap bitmap = image;
+                                cover.post(new Runnable() {
+                                    @Override public void run() {
+                                        if (story == cover.getTag()) {
+                                            play.setVisibility(View.GONE);
+                                            cover.setVisibility(View.VISIBLE);
+                                            cover.setImageBitmap(bitmap);
+                                            cover.setTag(null);
+                                        }
+                                    }
+                                });
+                            }
+                        });
                     }
                 } else {
                     play.setVisibility(View.GONE);
                     cover.setVisibility(View.GONE);
                     synchronized (downloading) {
-                        if (downloading.contains(story.getName(Incant.this))) {
+                        if (downloading.contains(storyName)) {
                             download.setVisibility(View.GONE);
                             progressBar.setVisibility(View.VISIBLE);
                             convertView.setOnClickListener(null);
@@ -229,7 +272,7 @@ public class Incant extends Activity {
                                     download.setVisibility(View.GONE);
                                     progressBar.setVisibility(View.VISIBLE);
                                     synchronized (downloading) {
-                                        downloading.add(story.getName(Incant.this));
+                                        downloading.add(storyName);
                                     }
                                     new Thread() {
                                         @Override public void run() {
@@ -239,7 +282,7 @@ public class Incant extends Activity {
                                                 Log.wtf(TAG,e);
                                             }
                                             synchronized (downloading) {
-                                                downloading.remove(story.getName(Incant.this));
+                                                downloading.remove(storyName);
                                             }
                                             storyList.post(refreshStoryList);
                                         }

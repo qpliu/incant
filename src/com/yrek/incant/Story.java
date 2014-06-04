@@ -34,7 +34,6 @@ class Story implements Serializable {
     private final String zipEntry;
     private final URL imageURL;
     private transient Metadata metadata;
-    private transient Bitmap coverImageBitmap;
 
     Story(String name, String author, String headline, String description, URL downloadURL, String zipEntry, URL imageURL) {
         this.name = name;
@@ -128,13 +127,8 @@ class Story implements Serializable {
     }
 
     public Bitmap getCoverImageBitmap(Context context) {
-        if (coverImageBitmap == null) {
-            File file = getCoverImageFile(context);
-            if (file.exists()) {
-                coverImageBitmap = BitmapFactory.decodeFile(file.getPath());
-            }
-        }
-        return coverImageBitmap;
+        File file = getCoverImageFile(context);
+        return file.exists() ? BitmapFactory.decodeFile(file.getPath()) : null;
     }
 
     public File getMetadataFile(Context context) {
