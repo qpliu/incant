@@ -3,7 +3,8 @@
   <string name="app_name">Incant</string>
   <string name="download">Download</string>
   <string name="play">Play</string>
-  <string name="delete">Delete</string>
+  <string name="delete_story">Delete story</string>
+  <string name="delete_save">Delete save file</string>
   <string name="scrape">Get more</string>
   <string name="downloaded_recently">Downloaded %tr</string>
   <string name="downloaded_at">Downloaded %tD</string>
@@ -11,5 +12,4 @@
   <string name="saved_at">Saved %tD</string>
   <string name="keyboard">Keyboard</string>
   <string name="skip">Skip</string>
-  <string name="enter">Enter</string>
 </resources>

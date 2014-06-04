@@ -13,46 +13,90 @@ import android.widget.TextView;
 public class StoryDetails extends Activity {
     private static final String TAG = StoryDetails.class.getSimpleName();
 
+    private Story story;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.story_details);
-        setStory((Story) getIntent().getSerializableExtra(Incant.STORY));
+        story = (Story) getIntent().getSerializableExtra(Incant.STORY);
     }
 
-    private void setStory(final Story story) {
-        ((TextView) findViewById(R.id.name)).setText(story.getName(this));
-        ((TextView) findViewById(R.id.author)).setText(story.getAuthor(this));
-        ((TextView) findViewById(R.id.headline)).setText(story.getHeadline(this));
-        ((TextView) findViewById(R.id.description)).setText(story.getDescription(this));
-        if (!story.isDownloaded(this)) {
-            findViewById(R.id.play).setVisibility(View.GONE);
-            findViewById(R.id.cover).setVisibility(View.GONE);
-            findViewById(R.id.progressbar).setVisibility(View.GONE);
-            ((Button) findViewById(R.id.downloaddelete)).setText(R.string.download);
-            findViewById(R.id.savecontainer).setVisibility(View.GONE);
-        } else {
-            findViewById(R.id.play).setVisibility(View.VISIBLE);
-            findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    Intent intent = new Intent(StoryDetails.this, Play.class);
-                    intent.putExtra(Incant.STORY, story);
-                    startActivity(intent);
-                }
-            });
-            if (story.getCoverImageFile(this).exists()) {
-                findViewById(R.id.cover).setVisibility(View.VISIBLE);
-                ((ImageView) findViewById(R.id.cover)).setImageBitmap(story.getCoverImageBitmap(this));
-            } else {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setView.run();
+    }
+
+    private final Runnable setView = new Runnable() {
+        @Override
+        public void run() {
+            ((TextView) findViewById(R.id.name)).setText(story.getName(StoryDetails.this));
+            ((TextView) findViewById(R.id.author)).setText(story.getAuthor(StoryDetails.this));
+            ((TextView) findViewById(R.id.headline)).setText(story.getHeadline(StoryDetails.this));
+            ((TextView) findViewById(R.id.description)).setText(story.getDescription(StoryDetails.this));
+            if (!story.isDownloaded(StoryDetails.this)) {
+                findViewById(R.id.play).setVisibility(View.GONE);
                 findViewById(R.id.cover).setVisibility(View.GONE);
-            }
-            findViewById(R.id.progressbar).setVisibility(View.GONE);
-            ((Button) findViewById(R.id.downloaddelete)).setText(R.string.delete);
-            if (!story.getSaveFile(this).exists()) {
+                findViewById(R.id.progressbar).setVisibility(View.GONE);
+                ((Button) findViewById(R.id.downloaddelete)).setText(R.string.download);
+                findViewById(R.id.downloaddelete).setVisibility(View.VISIBLE);
+                findViewById(R.id.downloaddelete).setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(final View v) {
+                        v.setVisibility(View.GONE);
+                        findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+                        new Thread() {
+                            @Override public void run() {
+                                try {
+                                    story.download(StoryDetails.this);
+                                } catch (Exception e) {
+                                    Log.wtf(TAG,e);
+                                }
+                                v.post(setView);
+                            }
+                        }.start();
+                    }
+                });
+                ((TextView) findViewById(R.id.downloaddeletetext)).setText(story.getDownloadURL(StoryDetails.this).toString());
                 findViewById(R.id.savecontainer).setVisibility(View.GONE);
             } else {
-                findViewById(R.id.savecontainer).setVisibility(View.VISIBLE);
+                findViewById(R.id.play).setVisibility(View.VISIBLE);
+                findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        Intent intent = new Intent(StoryDetails.this, Play.class);
+                        intent.putExtra(Incant.STORY, story);
+                        startActivity(intent);
+                    }
+                });
+                if (story.getCoverImageFile(StoryDetails.this).exists()) {
+                    findViewById(R.id.cover).setVisibility(View.VISIBLE);
+                    ((ImageView) findViewById(R.id.cover)).setImageBitmap(story.getCoverImageBitmap(StoryDetails.this));
+                } else {
+                    findViewById(R.id.cover).setVisibility(View.GONE);
+                }
+                findViewById(R.id.progressbar).setVisibility(View.GONE);
+                ((Button) findViewById(R.id.downloaddelete)).setText(R.string.delete_story);
+                findViewById(R.id.downloaddelete).setVisibility(View.VISIBLE);
+                findViewById(R.id.downloaddelete).setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        story.delete(StoryDetails.this);
+                        finish();
+                    }
+                });
+                ((TextView) findViewById(R.id.downloaddeletetext)).setText(Incant.getTimeString(StoryDetails.this, R.string.downloaded_recently, R.string.downloaded_at, story.getFile(StoryDetails.this).lastModified()));
+                if (!story.getSaveFile(StoryDetails.this).exists()) {
+                    findViewById(R.id.savecontainer).setVisibility(View.GONE);
+                } else {
+                    findViewById(R.id.savecontainer).setVisibility(View.VISIBLE);
+                    findViewById(R.id.deletesave).setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) {
+                            story.getSaveFile(StoryDetails.this).delete();
+                            setView.run();
+                        }
+                    });
+                    ((TextView) findViewById(R.id.savetext)).setText(Incant.getTimeString(StoryDetails.this, R.string.saved_recently, R.string.saved_at, story.getSaveFile(StoryDetails.this).lastModified()));
+                }
             }
-        }            
-    }
+        }
+    };
 }

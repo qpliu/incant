@@ -1,6 +1,7 @@
 package com.yrek.incant;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
@@ -81,19 +82,26 @@ public class Incant extends Activity {
         int start = sb.length();
         sb.append(story.getName(this));
         sb.setSpan(titleStyle, start, sb.length(), 0);
-        String author = story.getAuthor(this);
-        if (author != null) {
-            sb.append(' ');
-            start = sb.length();
-            sb.append(author);
-            sb.setSpan(authorStyle, start, sb.length(), 0);
-        }
         String headline = story.getHeadline(this);
         if (headline != null) {
             sb.append(' ');
             start = sb.length();
             sb.append(headline);
             sb.setSpan(headlineStyle, start, sb.length(), 0);
+        }
+        return sb;
+    }
+
+    private SpannableStringBuilder makeAuthor(Story story) {
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        String author = story.getAuthor(this);
+        if (author == null) {
+            sb.append("author unknown");
+        } else {
+            sb.append("by ");
+            int start = sb.length();
+            sb.append(author);
+            sb.setSpan(authorStyle, start, sb.length(), 0);
         }
         return sb;
     }
@@ -105,21 +113,13 @@ public class Incant extends Activity {
         File storyFile = story.getFile(this);
         int start = sb.length();
         if (saveFile.exists()) {
-            if (saveFile.lastModified() + 86400000L > System.currentTimeMillis()) {
-                sb.append(getString(R.string.saved_recently, saveFile.lastModified()));
-            } else {
-                sb.append(getString(R.string.saved_at, saveFile.lastModified()));
-            }
+            sb.append(getTimeString(this, R.string.saved_recently, R.string.saved_at, saveFile.lastModified()));
             sb.setSpan(saveTimeStyle, start, sb.length(), 0);
         } else if (description != null) {
             sb.append(description);
             sb.setSpan(descriptionStyle, start, sb.length(), 0);
         } else if (storyFile.exists()) {
-            if (storyFile.lastModified() + 86400000L > System.currentTimeMillis()) {
-                sb.append(getString(R.string.downloaded_recently, storyFile.lastModified()));
-            } else {
-                sb.append(getString(R.string.downloaded_at, storyFile.lastModified()));
-            }
+            sb.append(getTimeString(this, R.string.downloaded_recently, R.string.downloaded_at, storyFile.lastModified()));
             sb.setSpan(downloadTimeStyle, start, sb.length(), 0);
         }
         return sb;
@@ -186,6 +186,7 @@ public class Incant extends Activity {
             } else {
                 info.setVisibility(View.VISIBLE);
                 ((TextView) convertView.findViewById(R.id.name)).setText(makeName(story));
+                ((TextView) convertView.findViewById(R.id.author)).setText(makeAuthor(story));
                 ((TextView) convertView.findViewById(R.id.description)).setText(makeDescription(story));
                 convertView.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override public boolean onLongClick(View v) {
@@ -250,6 +251,14 @@ public class Incant extends Activity {
                 }
             }
             return convertView;
+        }
+    }
+
+    public static String getTimeString(Context context, int recentStringId, int stringId, long time) {
+        if (time + 86400000L > System.currentTimeMillis()) {
+            return context.getString(recentStringId, time);
+        } else {
+            return context.getString(stringId, time);
         }
     }
 }

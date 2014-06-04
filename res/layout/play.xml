@@ -69,6 +69,5 @@
      android:inputType="text"
      android:clickable="false"
      android:focusable="false"
-     android:imeActionLabel="@string/enter"
      />
 </RelativeLayout>

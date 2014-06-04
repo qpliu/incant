@@ -12,7 +12,7 @@
      >
     <TextView
        android:layout_width="wrap_content"
-       android:layout_height="40dp"
+       android:layout_height="80dp"
        android:id="@+id/download"
        android:text="@string/download"
        android:textSize="20dp"
@@ -20,21 +20,21 @@
        />
     <ProgressBar
        android:layout_width="wrap_content"
-       android:layout_height="40dp"
+       android:layout_height="80dp"
        android:id="@+id/progressbar"
        android:indeterminate="true"
        />
     <TextView
-       android:layout_width="40dp"
-       android:layout_height="40dp"
+       android:layout_width="80dp"
+       android:layout_height="80dp"
        android:id="@+id/play"
        android:text="@string/play"
-       android:textSize="10dp"
+       android:textSize="15dp"
        android:gravity="center"
        />
     <ImageView
-       android:layout_width="40dp"
-       android:layout_height="40dp"
+       android:layout_width="80dp"
+       android:layout_height="80dp"
        android:id="@+id/cover"
        android:scaleType="centerInside"
        />
@@ -44,6 +44,7 @@
      android:layout_height="wrap_content"
      android:layout_toRightOf="@id/buttons"
      android:layout_alignParentRight="true"
+     android:layout_marginLeft="5dp"
      android:orientation="vertical"
      android:id="@+id/info"
      >
@@ -51,6 +52,13 @@
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
        android:id="@+id/name"
+       android:singleLine="true"
+       android:ellipsize="end"
+       />
+    <TextView
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:id="@+id/author"
        android:singleLine="true"
        android:ellipsize="end"
        />
