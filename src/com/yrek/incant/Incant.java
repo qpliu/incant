@@ -42,6 +42,8 @@ public class Incant extends Activity {
     private HandlerThread handlerThread;
     private LruCache<String,Bitmap> coverImageCache;
 
+    static HashSet<String> downloading = new HashSet<String>();
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,10 +152,32 @@ public class Incant extends Activity {
     }
 
     private class StoryListAdapter extends ArrayAdapter<Story> {
-        private HashSet<String> downloading = new HashSet<String>();
+        private Thread downloadingObserver = null;
 
         StoryListAdapter() {
             super(Incant.this, R.layout.story);
+        }
+
+        private void setDownloadingObserver() {
+            synchronized (downloading) {
+                if (downloadingObserver == null) {
+                    downloadingObserver = new Thread() {
+                        @Override
+                        public void run() {
+                            synchronized (downloading) {
+                                try {
+                                    downloading.wait();
+                                } catch (Exception e) {
+                                    Log.wtf(TAG,e);
+                                }
+                                downloadingObserver = null;
+                                storyList.post(refreshStoryList);
+                            }
+                        }
+                    };
+                    downloadingObserver.start();
+                }
+            }
         }
 
         @Override
@@ -180,6 +204,7 @@ public class Incant extends Activity {
                         progressBar.setVisibility(View.VISIBLE);
                         convertView.setOnLongClickListener(null);
                         convertView.setOnClickListener(null);
+                        setDownloadingObserver();
                     } else {
                         download.setVisibility(View.VISIBLE);
                         progressBar.setVisibility(View.GONE);
@@ -191,6 +216,7 @@ public class Incant extends Activity {
                                 progressBar.setVisibility(View.VISIBLE);
                                 synchronized (downloading) {
                                     downloading.add("");
+                                    setDownloadingObserver();
                                 }
                                 new Thread() {
                                     @Override public void run() {
@@ -201,8 +227,8 @@ public class Incant extends Activity {
                                         }
                                         synchronized (downloading) {
                                             downloading.remove("");
+                                            downloading.notifyAll();
                                         }
-                                        storyList.post(refreshStoryList);
                                     }
                                 }.start();
                             }
@@ -264,6 +290,7 @@ public class Incant extends Activity {
                             download.setVisibility(View.GONE);
                             progressBar.setVisibility(View.VISIBLE);
                             convertView.setOnClickListener(null);
+                            setDownloadingObserver();
                         } else {
                             download.setVisibility(View.VISIBLE);
                             download.setText(R.string.download);
@@ -273,6 +300,7 @@ public class Incant extends Activity {
                                     progressBar.setVisibility(View.VISIBLE);
                                     synchronized (downloading) {
                                         downloading.add(storyName);
+                                        setDownloadingObserver();
                                     }
                                     new Thread() {
                                         @Override public void run() {
@@ -283,8 +311,8 @@ public class Incant extends Activity {
                                             }
                                             synchronized (downloading) {
                                                 downloading.remove(storyName);
+                                                downloading.notifyAll();
                                             }
-                                            storyList.post(refreshStoryList);
                                         }
                                     }.start();
                                 }

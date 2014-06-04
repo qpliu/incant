@@ -29,8 +29,33 @@ public class StoryDetails extends Activity {
     }
 
     private final Runnable setView = new Runnable() {
+        private Thread downloadingObserver = null;
+
+        private void setDownloadingObserver() {
+            synchronized (Incant.downloading) {
+                if (downloadingObserver == null) {
+                    downloadingObserver = new Thread() {
+                        @Override
+                        public void run() {
+                            synchronized (Incant.downloading) {
+                                try {
+                                    Incant.downloading.wait();
+                                } catch (Exception e) {
+                                    Log.wtf(TAG,e);
+                                }
+                                downloadingObserver = null;
+                                findViewById(R.id.progressbar).post(setView);
+                            }
+                        }
+                    };
+                    downloadingObserver.start();
+                }
+            }
+        }
+
         @Override
         public void run() {
+            final String storyName = story.getName(StoryDetails.this);
             ((TextView) findViewById(R.id.name)).setText(story.getName(StoryDetails.this));
             ((TextView) findViewById(R.id.author)).setText(story.getAuthor(StoryDetails.this));
             ((TextView) findViewById(R.id.headline)).setText(story.getHeadline(StoryDetails.this));
@@ -45,12 +70,20 @@ public class StoryDetails extends Activity {
                     @Override public void onClick(final View v) {
                         v.setVisibility(View.GONE);
                         findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+                        synchronized (Incant.downloading) {
+                            Incant.downloading.add(storyName);
+                            setDownloadingObserver();
+                        }
                         new Thread() {
                             @Override public void run() {
                                 try {
                                     story.download(StoryDetails.this);
                                 } catch (Exception e) {
                                     Log.wtf(TAG,e);
+                                }
+                                synchronized (Incant.downloading) {
+                                    Incant.downloading.remove(storyName);
+                                    Incant.downloading.notifyAll();
                                 }
                                 v.post(setView);
                             }
@@ -59,6 +92,13 @@ public class StoryDetails extends Activity {
                 });
                 ((TextView) findViewById(R.id.downloaddeletetext)).setText(story.getDownloadURL(StoryDetails.this).toString());
                 findViewById(R.id.savecontainer).setVisibility(View.GONE);
+                synchronized (Incant.downloading) {
+                    if (Incant.downloading.contains(storyName)) {
+                        findViewById(R.id.downloaddelete).setVisibility(View.GONE);
+                        findViewById(R.id.progressbar).setVisibility(View.VISIBLE);
+                        setDownloadingObserver();
+                    }
+                }
             } else {
                 findViewById(R.id.play).setVisibility(View.VISIBLE);
                 findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
