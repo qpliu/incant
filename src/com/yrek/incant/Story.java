@@ -82,6 +82,10 @@ class Story implements Serializable {
         return downloadURL;
     }
 
+    public String getZipEntry(Context context) {
+        return zipEntry;
+    }
+
     public static File getRootDir(Context context) {
         return context.getDir("story", Context.MODE_PRIVATE);
     }

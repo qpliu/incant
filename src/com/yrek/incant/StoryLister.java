@@ -214,12 +214,11 @@ class StoryLister {
                     @Override public void endDocument() {
                         Log.d(TAG,"name="+name+",author="+author+",url="+url+",extraURL="+extraURL+",zipFile="+zipFile+",format="+format);
                         try {
-                            if (name != null && url != null) {
-                                if ("zcode".equals(format) || url.matches(".*\\.(z[358]|zblorb)")) {
-                                    writeStory(out, name, author, url, null);
-                                } else if (zipFile != null && extraURL != null) {
-                                    writeStory(out, name, author, extraURL, zipFile);
-                                }
+                            if (name == null) {
+                            } else if (url != null && url.matches(".*\\.(z[1-8]|zblorb)")) {
+                                writeStory(out, name, author, url, null);
+                            } else if (zipFile != null && zipFile.matches(".*\\.(z[1-8]|zblorb)")) {
+                                writeStory(out, name, author, extraURL, zipFile);
                             }
                         } catch (Exception e) {
                             Log.wtf(TAG,e);
@@ -236,16 +235,18 @@ class StoryLister {
                         } else if ("autoinstall/download/game/format/id".equals(path)) {
                             format = value;
                         } else if ("autoinstall/download/game/compression/primaryfile".equals(path)) {
-                            if (url != null && url.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[358]|zblorb)")) {
+                            if (url != null && url.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb)")) {
                                 extraURL = url;
                                 zipFile = value;
                             }
                         } else if ("autoinstall/download/extra/href".equals(path)) {
-                            if (zipFile == null) {
+                            if (url == null && value.matches(".*\\.(z[1-8]|zblorb)")) {
+                                url = value;
+                            } else if (zipFile == null) {
                                 extraURL = value;
                             }
                         } else if ("autoinstall/download/extra/compression/primaryfile".equals(path)) {
-                            if (extraURL != null && extraURL.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[358]|zblorb)")) {
+                            if (extraURL != null && extraURL.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb)")) {
                                 zipFile = value;
                             }
                         }
@@ -274,7 +275,7 @@ class StoryLister {
             this.downloadURL = context.getString(R.string.ifarchive_download_url);
         }
 
-        private final Pattern pattern = Pattern.compile("\\<li.*class=\"Date\"\\>\\[([^]]+)\\].*\\.\\.(/if-archive/games/zcode/[^\"]+)\"\\>if-archive/games/zcode/([^/]+)\\.(z[358]|zblorb)\\</a\\>");
+        private final Pattern pattern = Pattern.compile("\\<li.*class=\"Date\"\\>\\[([^]]+)\\].*\\.\\.(/if-archive/games/zcode/[^\"]+)\"\\>if-archive/games/zcode/([^/]+)\\.(z[1-8]|zblorb)\\</a\\>");
 
         @Override
         void scrape(final DataOutputStream out) throws IOException {

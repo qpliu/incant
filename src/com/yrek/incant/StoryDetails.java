@@ -90,7 +90,12 @@ public class StoryDetails extends Activity {
                         }.start();
                     }
                 });
-                ((TextView) findViewById(R.id.downloaddeletetext)).setText(story.getDownloadURL(StoryDetails.this).toString());
+                String downloadText = story.getDownloadURL(StoryDetails.this).toString();
+                String zipEntry = story.getZipEntry(StoryDetails.this);
+                if (zipEntry != null) {
+                    downloadText = downloadText + "[" + zipEntry + "]";
+                }
+                ((TextView) findViewById(R.id.downloaddeletetext)).setText(downloadText);
                 findViewById(R.id.savecontainer).setVisibility(View.GONE);
                 synchronized (Incant.downloading) {
                     if (Incant.downloading.contains(storyName)) {
