@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name">Incant</string>
+  <string name="app_name_story_details">Incant &gt; Story Details</string>
+  <string name="app_name_story_download">Incant &gt; Download Story</string>
   <string name="download">Download</string>
   <string name="play">Play</string>
   <string name="delete_story">Delete story</string>
@@ -12,4 +14,10 @@
   <string name="saved_at">Saved %tD</string>
   <string name="keyboard">Keyboard</string>
   <string name="skip">Skip</string>
+
+  <string name="name">Name</string>
+  <string name="url">URL</string>
+  <string name="ifarchive">(ifarchive)</string>
+  <string name="zip_entry">ZIP entry</string>
+  <string name="ifarchive_download_url_input_prefix">http://mirror.ifarchive.org/if-archive/games/zcode/</string>
 </resources>

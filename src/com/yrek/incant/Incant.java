@@ -160,7 +160,7 @@ public class Incant extends Activity {
 
         private void setDownloadingObserver() {
             synchronized (downloading) {
-                if (downloadingObserver == null) {
+                if (downloadingObserver == null && !downloading.isEmpty()) {
                     downloadingObserver = new Thread() {
                         @Override
                         public void run() {
@@ -198,18 +198,21 @@ public class Incant extends Activity {
                 info.setVisibility(View.GONE);
                 play.setVisibility(View.GONE);
                 cover.setVisibility(View.GONE);
+                convertView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override public boolean onLongClick(View v) {
+                        startActivity(new Intent(Incant.this, StoryDownload.class));
+                        return true;
+                    }
+                });
                 synchronized (downloading) {
                     if (downloading.contains("")) {
                         download.setVisibility(View.GONE);
                         progressBar.setVisibility(View.VISIBLE);
-                        convertView.setOnLongClickListener(null);
                         convertView.setOnClickListener(null);
-                        setDownloadingObserver();
                     } else {
                         download.setVisibility(View.VISIBLE);
                         progressBar.setVisibility(View.GONE);
                         download.setText(R.string.scrape);
-                        convertView.setOnLongClickListener(null);
                         convertView.setOnClickListener(new View.OnClickListener() {
                             @Override public void onClick(View v) {
                                 download.setVisibility(View.GONE);
@@ -290,7 +293,6 @@ public class Incant extends Activity {
                             download.setVisibility(View.GONE);
                             progressBar.setVisibility(View.VISIBLE);
                             convertView.setOnClickListener(null);
-                            setDownloadingObserver();
                         } else {
                             download.setVisibility(View.VISIBLE);
                             download.setText(R.string.download);
@@ -321,6 +323,7 @@ public class Incant extends Activity {
                     }
                 }
             }
+            setDownloadingObserver();
             return convertView;
         }
     }
