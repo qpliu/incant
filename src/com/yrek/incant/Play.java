@@ -513,7 +513,7 @@ public class Play extends Activity {
                 screenBuffer.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), start, end, 0);
                 break;
             case 128:
-                screenBuffer.setSpan(new TextAppearanceSpan(Play.this, R.style.inputtext), start, end, 0);
+                screenBuffer.setSpan(new TextAppearanceSpan(Play.this, R.style.input_text), start, end, 0);
             default:
             }
         }

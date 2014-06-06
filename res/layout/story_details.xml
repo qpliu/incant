@@ -29,71 +29,78 @@
 	 android:orientation="vertical"
 	 >
 	<TextView
-	   android:layout_width="wrap_content"
+	   android:layout_width="fill_parent"
 	   android:layout_height="wrap_content"
 	   android:id="@+id/name"
 	   />
 	<TextView
-	   android:layout_width="wrap_content"
+	   android:layout_width="fill_parent"
 	   android:layout_height="wrap_content"
 	   android:id="@+id/author"
 	   />
-	<TextView
-	   android:layout_width="wrap_content"
-	   android:layout_height="wrap_content"
-	   android:id="@+id/headline"
-	   />
+      </LinearLayout>
+    </RelativeLayout>
+    <TableLayout
+       android:layout_width="fill_parent"
+       android:layout_height="wrap_content"
+       android:orientation="vertical"
+       >
+      <TableRow
+	 android:id="@+id/play_container"
+	 >
 	<Button
-	   android:layout_width="wrap_content"
-	   android:layout_height="wrap_content"
+	   android:layout_column="1"
+	   android:layout_span="1"
 	   android:text="@string/play"
 	   android:id="@+id/play"
 	   />
-      </LinearLayout>
-    </RelativeLayout>
-    <LinearLayout
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"
-       android:orientation="horizontal"
-       >
-      <ProgressBar
-	 android:layout_width="wrap_content"
-	 android:layout_height="wrap_content"
-	 android:id="@+id/progressbar"
-	 android:indeterminate="true"
-	 />
-      <Button
-	 android:layout_width="wrap_content"
-	 android:layout_height="wrap_content"
-	 android:text="@string/download"
-	 android:id="@+id/downloaddelete"
-	 />
-      <TextView
-	 android:layout_width="wrap_content"
-	 android:layout_height="wrap_content"
-	 android:id="@+id/downloaddeletetext"
-	 />
-    </LinearLayout>
-    <LinearLayout
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"
-       android:orientation="horizontal"
-       android:id="@+id/savecontainer"
-       >
-      <Button
-	 android:layout_width="wrap_content"
-	 android:layout_height="wrap_content"
-	 android:text="@string/delete_save"
-	 android:id="@+id/deletesave"
-	 />
-      <TextView
-	 android:layout_width="wrap_content"
-	 android:layout_height="wrap_content"
-	 android:id="@+id/savetext"
-	 />
-    </LinearLayout>
+      </TableRow>
+      <TableRow>
+	<RelativeLayout
+	   android:layout_column="1"
+	   android:layout_span="1"
+	   >
+	  <ProgressBar
+	     android:layout_width="match_parent"
+	     android:layout_height="wrap_content"
+	     android:id="@+id/progressbar"
+	     android:indeterminate="true"
+	     />
+	  <Button
+	     android:layout_width="match_parent"
+	     android:layout_height="wrap_content"
+	     android:text="@string/download"
+	     android:id="@+id/download_delete"
+	     />
+	</RelativeLayout>
+	<TextView
+	   android:layout_column="2"
+	   android:layout_span="1"
+	   android:id="@+id/download_delete_text"
+	   android:scrollHorizontally="true"
+	   android:ellipsize="marquee"
+	   />
+      </TableRow>
+      <TableRow
+	 android:id="@+id/save_container"
+	 >
+	<Button
+	   android:layout_column="1"
+	   android:layout_span="1"
+	   android:text="@string/delete_save"
+	   android:id="@+id/delete_save"
+	   />
+	<TextView
+	   android:layout_column="2"
+	   android:layout_span="1"
+	   android:id="@+id/save_text"
+	   android:scrollHorizontally="true"
+	   android:ellipsize="marquee"
+	   />
+      </TableRow>
+    </TableLayout>
     <TextView
-       android:layout_width="wrap_content"
+       android:layout_width="match_parent"
        android:layout_height="wrap_content"
        android:id="@+id/description"
        />

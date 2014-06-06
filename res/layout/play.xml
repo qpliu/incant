@@ -62,7 +62,7 @@
      android:layout_width="fill_parent"
      android:layout_height="wrap_content"
      android:id="@+id/edit"
-     android:textColor="@color/inputtext"
+     android:textColor="@color/input_text"
      android:background="@color/background"
      android:visibility="gone"
      android:layout_below="@id/name"

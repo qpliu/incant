@@ -54,12 +54,12 @@ public class Incant extends Activity {
 
         storyList.setAdapter(storyListAdapter);
 
-        titleStyle = new TextAppearanceSpan(this, R.style.storytitle);
-        authorStyle = new TextAppearanceSpan(this, R.style.storyauthor);
-        headlineStyle = new TextAppearanceSpan(this, R.style.storyheadline);
-        descriptionStyle = new TextAppearanceSpan(this, R.style.storydescription);
-        saveTimeStyle = new TextAppearanceSpan(this, R.style.storysavetime);
-        downloadTimeStyle = new TextAppearanceSpan(this, R.style.storydownloadtime);
+        titleStyle = new TextAppearanceSpan(this, R.style.story_title);
+        authorStyle = new TextAppearanceSpan(this, R.style.story_author);
+        headlineStyle = new TextAppearanceSpan(this, R.style.story_headline);
+        descriptionStyle = new TextAppearanceSpan(this, R.style.story_description);
+        saveTimeStyle = new TextAppearanceSpan(this, R.style.story_save_time);
+        downloadTimeStyle = new TextAppearanceSpan(this, R.style.story_download_time);
 
         coverImageCache = new LruCache<String,Bitmap>(30);
     }
@@ -121,14 +121,14 @@ public class Incant extends Activity {
     private SpannableStringBuilder makeAuthor(Story story) {
         SpannableStringBuilder sb = new SpannableStringBuilder();
         String author = story.getAuthor(this);
+        int start = sb.length();
         if (author == null) {
             sb.append("author unknown");
         } else {
             sb.append("by ");
-            int start = sb.length();
             sb.append(author);
-            sb.setSpan(authorStyle, start, sb.length(), 0);
         }
+        sb.setSpan(authorStyle, start, sb.length(), 0);
         return sb;
     }
 

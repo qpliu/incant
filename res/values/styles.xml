@@ -1,43 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <color name="inputtext">#acf</color>
+  <color name="input_text">#acf</color>
   <color name="text">#fff</color>
   <color name="background">#000</color>
 
-  <style name="inputtext">
-    <item name="android:textColor">@color/inputtext</item>
+  <style name="input_text">
+    <item name="android:textColor">@color/input_text</item>
     <item name="android:typeface">monospace</item>
   </style>
 
-  <style name="storynamestyle" parent="@android:style/TextAppearance">
+  <style name="story_name_style" parent="@android:style/TextAppearance">
     <item name="android:textSize">18dp</item>
   </style>
 
-  <style name="storytitle" parent="@style/storynamestyle">
+  <style name="story_title" parent="@style/story_name_style">
     <item name="android:textStyle">bold</item>
   </style>
 
-  <style name="storyauthor" parent="@style/storynamestyle">
+  <style name="story_author" parent="@style/story_name_style">
     <item name="android:textColor">#ccc</item>
   </style>
 
-  <style name="storyheadline" parent="@style/storynamestyle">
+  <style name="story_headline" parent="@style/story_name_style">
     <item name="android:textStyle">italic</item>
   </style>
 
-  <style name="storydescriptionstyle" parent="@android:style/TextAppearance">
+  <style name="story_description_style" parent="@android:style/TextAppearance">
     <item name="android:textSize">12dp</item>
   </style>
 
-  <style name="storydescription" parent="@style/storydescriptionstyle">
+  <style name="story_description" parent="@style/story_description_style">
     <item name="android:textColor">#aaa</item>
   </style>
 
-  <style name="storysavetime" parent="@style/storydescriptionstyle">
+  <style name="story_save_time" parent="@style/story_description_style">
     <item name="android:textColor">#696</item>
   </style>
 
-  <style name="storydownloadtime" parent="@style/storydescriptionstyle">
+  <style name="story_download_time" parent="@style/story_description_style">
     <item name="android:textColor">#666</item>
+  </style>
+
+  <style name="story_details_name_style" parent="@android:style/TextAppearance">
+    <item name="android:textSize">18dp</item>
+  </style>
+
+  <style name="story_details_title" parent="@style/story_details_name_style">
+    <item name="android:textStyle">bold</item>
+  </style>
+
+  <style name="story_details_author" parent="@style/story_details_name_style">
+    <item name="android:textColor">#ccc</item>
+  </style>
+
+  <style name="story_details_headline" parent="@style/story_details_name_style">
+    <item name="android:textStyle">italic</item>
   </style>
 </resources>
