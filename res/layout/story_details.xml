@@ -104,5 +104,12 @@
        android:layout_height="wrap_content"
        android:id="@+id/description"
        />
+    <TextView
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:id="@+id/download_text"
+       android:scrollHorizontally="true"
+       android:ellipsize="marquee"
+       />
   </LinearLayout>
 </ScrollView>

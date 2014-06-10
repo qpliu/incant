@@ -103,6 +103,8 @@ public class StoryDetails extends Activity {
                     downloadText = downloadText + "[" + zipEntry + "]";
                 }
                 ((TextView) findViewById(R.id.download_delete_text)).setText(downloadText);
+                findViewById(R.id.download_text).setVisibility(View.VISIBLE);
+                ((TextView) findViewById(R.id.download_text)).setText(downloadText);
                 findViewById(R.id.save_container).setVisibility(View.GONE);
                 synchronized (Incant.downloading) {
                     if (Incant.downloading.contains(storyName)) {
@@ -148,9 +150,8 @@ public class StoryDetails extends Activity {
                     });
                     ((TextView) findViewById(R.id.save_text)).setText(Incant.getTimeString(StoryDetails.this, R.string.saved_recently, R.string.saved_at, story.getSaveFile(StoryDetails.this).lastModified()));
                 }
+                findViewById(R.id.download_text).setVisibility(View.GONE);
             }
-            findViewById(R.id.download_delete_text).setSelected(true);
-            findViewById(R.id.save_text).setSelected(true);
         }
     };
 
