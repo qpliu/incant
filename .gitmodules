@@ -1,0 +1,3 @@
+[submodule "submodules/ifstd"]
+	path = submodules/ifstd
+	url = https://github.com/qpliu/ifstd.git

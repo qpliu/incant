@@ -22,6 +22,8 @@ import java.util.zip.ZipFile;
 
 import org.xmlpull.v1.XmlSerializer;
 
+import com.yrek.ifstd.blorb.Blorb;
+
 class Story implements Serializable {
     private static final long serializableVersionID = 0L;
     private static final String TAG = Story.class.getSimpleName();
@@ -178,7 +180,7 @@ class Story implements Serializable {
             }
             Blorb blorb = null;
             try {
-                blorb = new Blorb(tmpFile);
+                blorb = Blorb.from(tmpFile);
             } catch (IOException e) {
             }
             if (blorb == null) {
@@ -192,7 +194,7 @@ class Story implements Serializable {
                             writeBlorbChunk(context, chunk, getMetadataFile(context));
                             break;
                         case Blorb.Fspc:
-                            coverImage = new DataInputStream(new ByteArrayInputStream(chunk.read())).readInt();
+                            coverImage = new DataInputStream(new ByteArrayInputStream(chunk.getContents())).readInt();
                             break;
                         default:
                         }
@@ -281,7 +283,7 @@ class Story implements Serializable {
             FileOutputStream out = null;
             try {
                 out = new FileOutputStream(tmpFile);
-                chunk.read(out);
+                chunk.write(out);
             } finally {
                 if (out != null) {
                     out.close();
