@@ -20,4 +20,7 @@
   <string name="ifarchive">(ifarchive)</string>
   <string name="zip_entry">ZIP entry</string>
   <string name="ifarchive_download_url_input_prefix">http://mirror.ifarchive.org/if-archive/games/zcode/</string>
+
+  <string name="download_failed">Failed download: %s</string>
+  <string name="download_invalid">Invalid download: %s</string>
 </resources>

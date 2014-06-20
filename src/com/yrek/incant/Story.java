@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.util.Xml;
+import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -96,8 +97,12 @@ class Story implements Serializable {
         return new File(getRootDir(context), name);
     }
 
-    public static File getStoryFile(Context context, String name) {
-        return new File(getStoryDir(context, name), "story");
+    public static File getZcodeFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "zcode");
+    }
+
+    public static File getGlulxFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "glulx");
     }
 
     public static File getSaveFile(Context context, String name) {
@@ -112,16 +117,32 @@ class Story implements Serializable {
         return new File(getStoryDir(context, name), "metadata");
     }
 
+    public static File getBlorbFile(Context context, String name) {
+        return new File(getStoryDir(context, name), "blorb");
+    }
+
+    public static boolean isDownloaded(Context context, String name) {
+        return getZcodeFile(context, name).exists() || getGlulxFile(context, name).exists();
+    }
+
     public File getDir(Context context) {
         return getStoryDir(context, name);
     }
 
-    public File getFile(Context context) {
-        return getStoryFile(context, name);
-    }
-
     public File getFile(Context context, String file) {
         return new File(getDir(context), file);
+    }
+
+    public File getStoryFile(Context context) {
+        return isZcode(context) ? getZcodeFile(context) : getGlulxFile(context);
+    }
+
+    public File getZcodeFile(Context context) {
+        return getZcodeFile(context, name);
+    }
+
+    public File getGlulxFile(Context context) {
+        return getGlulxFile(context, name);
     }
 
     public File getSaveFile(Context context) {
@@ -141,52 +162,50 @@ class Story implements Serializable {
         return getMetadataFile(context, name);
     }
 
-    public boolean isDownloaded(Context context) {
-        return getFile(context).exists();
+    public File getBlorbFile(Context context) {
+        return getBlorbFile(context, name);
     }
 
-    public void download(Context context) throws IOException {
+    public boolean isDownloaded(Context context) {
+        return getZcodeFile(context).exists() || getGlulxFile(context).exists();
+    }
+
+    public boolean isZcode(Context context) {
+        return getZcodeFile(context).exists();
+    }
+
+    public boolean isGlulx(Context context) {
+        return getGlulxFile(context).exists();
+    }
+
+    public boolean download(Context context) throws IOException {
+        boolean downloaded = false;
         getDir(context).mkdir();
         File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         try {
-            if (zipEntry == null) {
-                downloadTo(context, downloadURL, tmpFile);
-            } else {
-                File zipFile = File.createTempFile("zip","tmp",getDir(context));
-                ZipFile zf = null;
-                InputStream in = null;
-                FileOutputStream out = null;
+            int magic = downloadTo(context, downloadURL, tmpFile);
+            if (magic == 0x504b0304 && zipEntry != null) {
+                File tmpEntry = File.createTempFile("tmp","tmp",getDir(context));
                 try {
-                    downloadTo(context, downloadURL, zipFile);
-                    zf = new ZipFile(zipFile);
-                    in = zf.getInputStream(zf.getEntry(zipEntry));
-                    out = new FileOutputStream(tmpFile);
-                    byte[] buffer = new byte[8192];
-                    for (int n = in.read(buffer); n >= 0; n = in.read(buffer)) {
-                        out.write(buffer, 0, n);
-                    }
+                    magic = unzipTo(context, tmpFile, tmpEntry);
+                    tmpEntry.renameTo(tmpFile);
                 } finally {
-                    if (out != null) {
-                        out.close();
+                    if (tmpEntry.exists()) {
+                        tmpEntry.delete();
                     }
-                    if (in != null) {
-                        in.close();
-                    }
-                    if (zf != null) {
-                        zf.close();
-                    }
-                    zipFile.delete();
                 }
             }
-            Blorb blorb = null;
-            try {
-                blorb = Blorb.from(tmpFile);
-            } catch (IOException e) {
-            }
-            if (blorb == null) {
-                tmpFile.renameTo(getFile(context));
-            } else {
+            if (magic == 0x476c756c) {
+                tmpFile.renameTo(getGlulxFile(context));
+                downloaded = true;
+            } else if ((magic >> 24) >= 3 && (magic >> 24) <= 8) {
+                tmpFile.renameTo(getZcodeFile(context));
+                downloaded = true;
+            } else if (magic == 0x464f524d) {
+                tmpFile.renameTo(getBlorbFile(context));
+                Blorb blorb = null;
                 try {
+                    blorb = Blorb.from(getBlorbFile(context));
                     int coverImage = -1;
                     for (Blorb.Chunk chunk : blorb.chunks()) {
                         switch (chunk.getId()) {
@@ -211,7 +230,11 @@ class Story implements Serializable {
                         switch (res.getUsage()) {
                         case Blorb.Exec:
                             if (chunk.getId() == Blorb.ZCOD) {
-                                writeBlorbChunk(context, chunk, getFile(context));
+                                writeBlorbChunk(context, chunk, getZcodeFile(context));
+                                downloaded = true;
+                            } else if (chunk.getId() == Blorb.GLUL) {
+                                writeBlorbChunk(context, chunk, getGlulxFile(context));
+                                downloaded = true;
                             }
                             break;
                         case Blorb.Pict:
@@ -223,39 +246,91 @@ class Story implements Serializable {
                         }
                     }
                 } finally {
-                    blorb.close();
+                    if (blorb != null) {
+                        blorb.close();
+                    }
                 }
             }
         } finally {
             if (tmpFile.exists()) {
                 tmpFile.delete();
             }
-        }
-        try {
-            if (imageURL != null && !getCoverImageFile(context).exists()) {
-                downloadTo(context, imageURL, getCoverImageFile(context));
+            if (!downloaded) {
+                delete(context);
             }
-        } catch (Exception e) {
-            Log.wtf(TAG,e);
         }
-        try {
-            if (!getMetadataFile(context).exists()) {
-                writeMetadata(context, getMetadataFile(context));
+        if (downloaded) {
+            try {
+                if (imageURL != null && !getCoverImageFile(context).exists()) {
+                    downloadTo(context, imageURL, getCoverImageFile(context));
+                }
+            } catch (Exception e) {
+                Log.wtf(TAG,e);
             }
-        } catch (Exception e) {
-            Log.wtf(TAG,e);
+            try {
+                if (!getMetadataFile(context).exists()) {
+                    writeMetadata(context, getMetadataFile(context));
+                }
+            } catch (Exception e) {
+                Log.wtf(TAG,e);
+            }
+        }
+        return downloaded;
+    }
+
+    protected int unzipTo(Context context, File zipFile, File file) throws IOException {
+        InputStream in = null;
+        try {
+            ZipFile zf = new ZipFile(zipFile);
+            in = zf.getInputStream(zf.getEntry(zipEntry));
+            FileOutputStream out = null;
+            int magic = 0;
+            try {
+                out = new FileOutputStream(file);
+                for (int i = 0; i < 4; i++) {
+                    int b = in.read();
+                    if (b < 0) {
+                        break;
+                    } else {
+                        out.write(b);
+                        magic |= (b&255) << (24 - 8*i);
+                    }
+                }
+                byte[] buffer = new byte[8192];
+                for (int n = in.read(buffer); n >= 0; n = in.read(buffer)) {
+                    out.write(buffer, 0, n);
+                }
+            } finally {
+                if (out != null) {
+                    out.close();
+                }
+            }
+            return magic;
+        } finally {
+            if (in != null) {
+                in.close();
+            }
         }
     }
 
-    protected void downloadTo(Context context, URL url, File file) throws IOException {
-        getDir(context).mkdir();
+    protected int downloadTo(Context context, URL url, File file) throws IOException {
         File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         InputStream in = null;
         try {
             in = url.openStream();
+            int magic = 0;
             FileOutputStream out = null;
             try {
                 out = new FileOutputStream(tmpFile);
+                for (int i = 0; i < 4; i++) {
+                    int b = in.read();
+                    if (b < 0) {
+                        break;
+                    } else {
+                        out.write(b);
+                        magic |= (b&255) << (24 - 8*i);
+                    }
+                }
                 byte[] buffer = new byte[8192];
                 for (int n = in.read(buffer); n >= 0; n = in.read(buffer)) {
                     out.write(buffer, 0, n);
@@ -266,6 +341,7 @@ class Story implements Serializable {
                 }
             }
             tmpFile.renameTo(file);
+            return magic;
         } finally {
             if (in != null) {
                 in.close();
@@ -332,6 +408,8 @@ class Story implements Serializable {
                 description = value;
             } else if ("ifindex/story/zcode/coverpicture".equals(path)) {
                 coverpicture = value;
+            } else if ("ifindex/story/glulx/coverpicture".equals(path)) {
+                coverpicture = value;
             }
         }
     }
@@ -389,6 +467,8 @@ class Story implements Serializable {
             return "go southeast";
         } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
             return "wear" + input.substring(5);
+        } else if ("wat".equals(input)) {
+            return "wait";
         }
         return input;
     }
@@ -404,12 +484,6 @@ class Story implements Serializable {
     }
 
     public String translateOutput(String output) {
-        if (output == null || ">".equals(output)) {
-            return null;
-        }
-        if (output.endsWith("\n>")) {
-            return output.substring(0, output.length() - 2);
-        }
         return output;
     }
 }

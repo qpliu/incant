@@ -69,8 +69,7 @@ class StoryLister {
 
     private void addDownloaded(ArrayList<Story> stories) throws IOException {
         for (File file : Story.getRootDir(context).listFiles()) {
-            File storyFile = Story.getStoryFile(context, file.getName());
-            if (!storyFile.exists()) {
+            if (!Story.isDownloaded(context, file.getName())) {
                 continue;
             }
             addStory(new Story(file.getName(), null, null, null, null, null, null), stories);
@@ -215,9 +214,9 @@ class StoryLister {
                         Log.d(TAG,"name="+name+",author="+author+",url="+url+",extraURL="+extraURL+",zipFile="+zipFile+",format="+format);
                         try {
                             if (name == null) {
-                            } else if (url != null && url.matches(".*\\.(z[1-8]|zblorb)")) {
+                            } else if (url != null && url.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
                                 writeStory(out, name, author, url, null);
-                            } else if (zipFile != null && zipFile.matches(".*\\.(z[1-8]|zblorb)")) {
+                            } else if (zipFile != null && zipFile.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
                                 writeStory(out, name, author, extraURL, zipFile);
                             }
                         } catch (Exception e) {
@@ -235,18 +234,18 @@ class StoryLister {
                         } else if ("autoinstall/download/game/format/id".equals(path)) {
                             format = value;
                         } else if ("autoinstall/download/game/compression/primaryfile".equals(path)) {
-                            if (url != null && url.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb)")) {
+                            if (url != null && url.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
                                 extraURL = url;
                                 zipFile = value;
                             }
                         } else if ("autoinstall/download/extra/href".equals(path)) {
-                            if (url == null && value.matches(".*\\.(z[1-8]|zblorb)")) {
+                            if (url == null && value.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
                                 url = value;
                             } else if (zipFile == null) {
                                 extraURL = value;
                             }
                         } else if ("autoinstall/download/extra/compression/primaryfile".equals(path)) {
-                            if (extraURL != null && extraURL.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb)")) {
+                            if (extraURL != null && extraURL.matches(".*\\.(zip|ZIP)") && value.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
                                 zipFile = value;
                             }
                         }
@@ -275,7 +274,7 @@ class StoryLister {
             this.downloadURL = context.getString(R.string.ifarchive_download_url);
         }
 
-        private final Pattern pattern = Pattern.compile("\\<li.*class=\"Date\"\\>\\[([^]]+)\\].*\\.\\.(/if-archive/games/zcode/[^\"]+)\"\\>if-archive/games/zcode/([^/]+)\\.(z[1-8]|zblorb)\\</a\\>");
+        private final Pattern pattern = Pattern.compile("\\<li.*class=\"Date\"\\>\\[([^]]+)\\].*\\.\\.(/if-archive/games/(zcode|glulx)/[^\"]+)\"\\>if-archive/games/(zcode|glulx)/([^/]+)\\.(z[1-8]|zblorb|ulx|blb|gblorb)\\</a\\>");
 
         @Override
         void scrape(final DataOutputStream out) throws IOException {
@@ -283,7 +282,7 @@ class StoryLister {
                 @Override public void scrape(String line) throws IOException {
                     Matcher m = pattern.matcher(line);
                     while (m.find()) {
-                        writeStory(out, m.group(3), "", downloadURL + m.group(2), "");
+                        writeStory(out, m.group(5), "", downloadURL + m.group(2), "");
                     }
                 }
             });

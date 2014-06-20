@@ -19,6 +19,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.HashSet;
@@ -136,7 +137,7 @@ public class Incant extends Activity {
         SpannableStringBuilder sb = new SpannableStringBuilder();
         String description = story.getDescription(this);
         File saveFile = story.getSaveFile(this);
-        File storyFile = story.getFile(this);
+        File storyFile = story.getStoryFile(this);
         int start = sb.length();
         if (saveFile.exists()) {
             sb.append(getTimeString(this, R.string.saved_recently, R.string.saved_at, saveFile.lastModified()));
@@ -255,9 +256,13 @@ public class Incant extends Activity {
                     download.setVisibility(View.GONE);
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override public void onClick(View v) {
-                            Intent intent = new Intent(Incant.this, Play.class);
-                            intent.putExtra(STORY, story);
-                            startActivity(intent);
+                            if (story.isZcode(Incant.this)) {
+                                Intent intent = new Intent(Incant.this, Play.class);
+                                intent.putExtra(STORY, story);
+                                startActivity(intent);
+                            } else {
+                                Toast.makeText(Incant.this, "Glulx not implemented", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     });
                     play.setVisibility(View.VISIBLE);
@@ -297,7 +302,7 @@ public class Incant extends Activity {
                             download.setVisibility(View.VISIBLE);
                             download.setText(R.string.download);
                             convertView.setOnClickListener(new View.OnClickListener() {
-                                @Override public void onClick(View v) {
+                                @Override public void onClick(final View v) {
                                     download.setVisibility(View.GONE);
                                     progressBar.setVisibility(View.VISIBLE);
                                     synchronized (downloading) {
@@ -306,14 +311,26 @@ public class Incant extends Activity {
                                     }
                                     new Thread() {
                                         @Override public void run() {
+                                            String error = null;
                                             try {
-                                                story.download(Incant.this);
+                                                if (!story.download(Incant.this)) {
+                                                    error = Incant.this.getString(R.string.download_invalid, story.getName(Incant.this));
+                                                }
                                             } catch (Exception e) {
                                                 Log.wtf(TAG,e);
+                                                error = Incant.this.getString(R.string.download_failed, story.getName(Incant.this));
                                             }
                                             synchronized (downloading) {
                                                 downloading.remove(storyName);
                                                 downloading.notifyAll();
+                                            }
+                                            if (error != null) {
+                                                final String msg = error;
+                                                v.post(new Runnable() {
+                                                    @Override public void run() {
+                                                        Toast.makeText(Incant.this, msg, Toast.LENGTH_SHORT).show();
+                                                    }
+                                                });
                                             }
                                         }
                                     }.start();

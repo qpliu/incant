@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class StoryDetails extends Activity {
     private static final String TAG = StoryDetails.class.getSimpleName();
@@ -83,14 +84,26 @@ public class StoryDetails extends Activity {
                         }
                         new Thread() {
                             @Override public void run() {
+                                String error = null;
                                 try {
-                                    story.download(StoryDetails.this);
+                                    if (!story.download(StoryDetails.this)) {
+                                        error = StoryDetails.this.getString(R.string.download_invalid, story.getName(StoryDetails.this));
+                                    }
                                 } catch (Exception e) {
                                     Log.wtf(TAG,e);
+                                    error = StoryDetails.this.getString(R.string.download_failed, story.getName(StoryDetails.this));
                                 }
                                 synchronized (Incant.downloading) {
                                     Incant.downloading.remove(storyName);
                                     Incant.downloading.notifyAll();
+                                }
+                                if (error != null) {
+                                    final String msg = error;
+                                    v.post(new Runnable() {
+                                        @Override public void run() {
+                                            Toast.makeText(StoryDetails.this, msg, Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
                                 }
                                 v.post(setView);
                             }
@@ -117,9 +130,13 @@ public class StoryDetails extends Activity {
                 findViewById(R.id.play_container).setVisibility(View.VISIBLE);
                 findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) {
-                        Intent intent = new Intent(StoryDetails.this, Play.class);
-                        intent.putExtra(Incant.STORY, story);
-                        startActivity(intent);
+                        if (story.isZcode(StoryDetails.this)) {
+                            Intent intent = new Intent(StoryDetails.this, Play.class);
+                            intent.putExtra(Incant.STORY, story);
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(StoryDetails.this, "Glulx not implemented", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
                 if (story.getCoverImageFile(StoryDetails.this).exists()) {
@@ -137,7 +154,7 @@ public class StoryDetails extends Activity {
                         finish();
                     }
                 });
-                ((TextView) findViewById(R.id.download_delete_text)).setText(Incant.getTimeString(StoryDetails.this, R.string.downloaded_recently, R.string.downloaded_at, story.getFile(StoryDetails.this).lastModified()));
+                ((TextView) findViewById(R.id.download_delete_text)).setText(Incant.getTimeString(StoryDetails.this, R.string.downloaded_recently, R.string.downloaded_at, story.getStoryFile(StoryDetails.this).lastModified()));
                 if (!story.getSaveFile(StoryDetails.this).exists()) {
                     findViewById(R.id.save_container).setVisibility(View.GONE);
                 } else {

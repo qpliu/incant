@@ -123,7 +123,7 @@ public class Play extends Activity {
                             }
                         }
                         Log.d(TAG,"ZCPU:screenWidth="+screenWidth+",screenHeight="+screenHeight);
-                        zcpu.initialize(story.getFile(Play.this).getPath());
+                        zcpu.initialize(story.getZcodeFile(Play.this).getPath());
                         zcpu.run();
                     } catch (InterruptedException e) {
                     } catch (ZQuitException e) {
