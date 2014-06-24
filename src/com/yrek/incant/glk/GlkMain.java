@@ -1,7 +1,11 @@
 package com.yrek.incant.glk;
 
+import android.content.Context;
+
+import java.io.File;
 import java.io.Serializable;
 
+import com.yrek.ifstd.blorb.Blorb;
 import com.yrek.ifstd.glk.GlkDispatch;
 
 public interface GlkMain extends Serializable {
@@ -10,4 +14,7 @@ public interface GlkMain extends Serializable {
     public void start();
     public void requestSuspend();
     public Serializable suspend();
+    public Blorb getBlorb(Context context);
+    public File getSaveFile(Context context);
+    public File getDir(Context context);
 }
