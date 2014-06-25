@@ -3,6 +3,8 @@ package com.yrek.incant.glk;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -23,6 +25,7 @@ import android.widget.TextView;
 import java.io.IOException;
 import java.io.Serializable;
 
+import com.yrek.ifstd.blorb.Blorb;
 import com.yrek.ifstd.glk.Glk;
 import com.yrek.ifstd.glk.GlkByteArray;
 import com.yrek.ifstd.glk.GlkDispatch;
@@ -52,7 +55,12 @@ public class GlkActivity extends Activity {
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
     private Window rootWindow;
-    private Stream currentStream;
+    private GlkStream currentStream;
+    private long lastTimerEvent = 0L;
+    private long timerInterval = 0L;
+
+    private Object ioLock = new Object();
+    private boolean outputPending = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +150,9 @@ public class GlkActivity extends Activity {
             case GlkGestalt.CharOutput:
                 return 1;
             case GlkGestalt.MouseInput:
+                return 0;
             case GlkGestalt.Timer:
+                return 1;
             case GlkGestalt.Graphics:
             case GlkGestalt.DrawImage:
             case GlkGestalt.Sound:
@@ -196,21 +206,20 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkWindow windowOpen(GlkWindow split, int method, int size, int winType, int rock) {
-            if (rootWindow == null) {
-                if (split != null) {
-                    throw new IllegalStateException();
-                }
-                //...
-            } else {
-                //...
+            if (rootWindow != null || split != null || winType != GlkWindow.TypeTextBuffer) { //... temporary
+                return null; //... temporary
+            } //... temporary
+            Window window = Window.open((Window) split, method, size, winType, rock);
+            if (window != null && rootWindow == split) {
+                rootWindow = (Window) window.getParent();
             }
-            throw new RuntimeException("unimplemented");
+            return window;
         }
 
 
         @Override
         public void setWindow(GlkWindow window) {
-            throw new RuntimeException("unimplemented");
+            currentStream = window.getStream();
         }
 
 
@@ -236,7 +245,7 @@ public class GlkActivity extends Activity {
 
         @Override
         public void streamSetCurrent(GlkStream stream) {
-            throw new RuntimeException("unimplemented");
+            currentStream = stream;
         }
 
         @Override
@@ -326,26 +335,131 @@ public class GlkActivity extends Activity {
         }
 
 
-        @Override
-        public GlkEvent select() throws IOException {
-            throw new RuntimeException("unimplemented");
+        private GlkEvent timerEvent() {
+            if (timerInterval <= 0) {
+                return null;
+            }
+            if (System.currentTimeMillis() < lastTimerEvent + timerInterval) {
+                return null;
+            }
+            lastTimerEvent = System.currentTimeMillis();
+            return new GlkEvent(GlkEvent.TypeTimer, null, 0, 0);
+        }
+
+        private long timeToNextTimerEvent() {
+            if (timerInterval <= 0) {
+                return -1;
+            }
+            return Math.max(0L, lastTimerEvent + timerInterval - System.currentTimeMillis());
         }
 
         @Override
-        public GlkEvent selectPoll() throws IOException {
-            throw new RuntimeException("unimplemented");
+        public GlkEvent select() {
+            synchronized (ioLock) {
+                outputPending = true;
+                frameLayout.post(handlePendingOutput);
+                while (outputPending) {
+                    try {
+                        ioLock.wait();
+                    } catch (InterruptedException e) {
+                        main.requestSuspend();
+                        return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+                    }
+                }
+            }
+            for (;;) {
+                if (rootWindow == null) {
+                    throw new IllegalStateException();
+                }
+                GlkEvent event;
+                try {
+                    event = rootWindow.getEvent(timeToNextTimerEvent(), false);
+                } catch (InterruptedException e) {
+                    main.requestSuspend();
+                    event = new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+                }
+                if (event != null) {
+                    return event;
+                }
+                event = timerEvent();
+                if (event != null) {
+                    return event;
+                }
+            }
+        }
+
+        @Override
+        public GlkEvent selectPoll() {
+            GlkEvent event = null;
+            try {
+                event = rootWindow.getEvent(0L, true);
+            } catch (InterruptedException e) {
+                main.requestSuspend();
+            }
+            if (event != null) {
+                return event;
+            }
+            event = timerEvent();
+            if (event != null) {
+                return event;
+            }
+            return new GlkEvent(GlkEvent.TypeNone, null, 0, 0);
         }
 
 
         @Override
         public void requestTimerEvents(int millisecs) {
-            throw new RuntimeException("unimplemented");
+            timerInterval = millisecs;
         }
 
 
         @Override
         public boolean imageGetInfo(int resourceId, int[] size) {
+            try {
+                Blorb blorb = main.getBlorb(GlkActivity.this);
+                if (blorb == null) {
+                    return false;
+                }
+                for (Blorb.Resource res : blorb.resources()) {
+                    if (res.getUsage() == Blorb.Pict && res.getNumber() == resourceId) {
+                        Blorb.Chunk chunk = res.getChunk();
+                        if (chunk == null || (chunk.getId() != Blorb.PNG && chunk.getId() != Blorb.JPEG)) {
+                            return false;
+                        }
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(chunk.getContents(), 0, chunk.getLength());
+                        size[0] = bitmap.getWidth();
+                        size[1] = bitmap.getHeight();
+                        return true;
+                    }
+                }
+            } catch (IOException e) {
+                Log.wtf(TAG,e);
+            }
             return false;
+        }
+    };
+
+    private final Runnable handlePendingOutput = new Runnable() {
+        @Override
+        public void run() {
+            if (rootWindow == null) {
+                frameLayout.removeViews(0, frameLayout.getChildCount());
+            } else {
+                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != rootWindow.getView()) {
+                    frameLayout.removeViews(0, frameLayout.getChildCount());
+                    frameLayout.addView(rootWindow.getView());
+                }
+                if (rootWindow.updatePendingOutput(this, false)) {
+                    return;
+                }
+                if (rootWindow.updatePendingOutput(this, true)) {
+                    return;
+                }
+            }
+            synchronized (ioLock) {
+                outputPending = false;
+                ioLock.notifyAll();
+            }
         }
     };
 }

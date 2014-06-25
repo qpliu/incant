@@ -24,6 +24,7 @@ import java.util.zip.ZipFile;
 import org.xmlpull.v1.XmlSerializer;
 
 import com.yrek.ifstd.blorb.Blorb;
+import com.yrek.incant.glk.SpeechMunger;
 
 class Story implements Serializable {
     private static final long serializableVersionID = 0L;
@@ -460,27 +461,11 @@ class Story implements Serializable {
     }
 
     public String chooseInput(List<String> options) {
-        String input = options.get(0);
-        if ("south east".equals(input)) {
-            return "southeast";
-        } else if ("go south east".equals(input)) {
-            return "go southeast";
-        } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
-            return "wear" + input.substring(5);
-        } else if ("wat".equals(input)) {
-            return "wait";
-        }
-        return input;
+        return SpeechMunger.chooseInput(options);
     }
 
     public char chooseCharacterInput(List<String> options) {
-        String input = options.get(0);
-        if ("space".equals(input)) {
-            return ' ';
-        } else if ("enter".equals(input)) {
-            return '\n';
-        }
-        return input.charAt(0);
+        return SpeechMunger.chooseCharacterInput(options);
     }
 
     public String translateOutput(String output) {
