@@ -209,9 +209,9 @@ public class GlkActivity extends Activity {
             if (rootWindow != null || split != null || winType != GlkWindow.TypeTextBuffer) { //... temporary
                 return null; //... temporary
             } //... temporary
-            Window window = Window.open((Window) split, method, size, winType, rock);
+            Window window = Window.open(GlkActivity.this, (Window) split, method, size, winType, rock);
             if (window != null && rootWindow == split) {
-                rootWindow = (Window) window.getParent();
+                rootWindow = window.parent;
             }
             return window;
         }

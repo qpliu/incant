@@ -3,17 +3,27 @@ package com.yrek.incant.glk;
 import android.view.View;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 
 import com.yrek.ifstd.glk.GlkByteArray;
 import com.yrek.ifstd.glk.GlkEvent;
+import com.yrek.ifstd.glk.GlkIntArray;
+import com.yrek.ifstd.glk.GlkStream;
 import com.yrek.ifstd.glk.GlkStreamResult;
 import com.yrek.ifstd.glk.GlkWindow;
-import com.yrek.ifstd.glk.GlkWindowArrangement;
 import com.yrek.ifstd.glk.GlkWindowSize;
 import com.yrek.ifstd.glk.GlkWindowStream;
+import com.yrek.ifstd.glk.UnicodeString;
 
 class WindowTextBuffer extends Window {
     private static final long serialVersionUID = 0L;
+
+    ArrayDeque<Update> updates = new ArrayDeque<Update>();
+    private boolean lineEventRequested = false;
+    private boolean charEventRequested = false;
+    private GlkByteArray lineEventBuffer = null;
+    private boolean echoLineEvent = true;
+    private int writeCount = 0;
 
     WindowTextBuffer(int rock) {
         super(rock);
@@ -26,7 +36,7 @@ class WindowTextBuffer extends Window {
 
     @Override
     boolean hasPendingEvent() {
-        throw new RuntimeException("unimplemented");
+        return lineEventRequested || charEventRequested;
     }
 
     @Override
@@ -47,28 +57,40 @@ class WindowTextBuffer extends Window {
         throw new RuntimeException("unimplemented");
     }
 
+    static class Update {
+        boolean clear = false;
+        boolean flowBreak = false;
+        int style = GlkStream.StyleNormal;
+        StringBuilder string = new StringBuilder();
+    }
+
+    Update updateQueueLatest(boolean newString) {
+        Update latest = updates.peekLast();
+        if (latest != null && (!newString || latest.string.length() == 0)) {
+            return latest;
+        }
+        Update newLatest = new Update();
+        if (latest != null) {
+            newLatest.style = latest.style;
+        }
+        updates.addLast(newLatest);
+        return newLatest;
+    }
+
     @Override
     public GlkWindowStream getStream() {
-        throw new RuntimeException("unimplemented");
+        return stream;
     }
 
     @Override
     public GlkStreamResult close() throws IOException {
-        throw new RuntimeException("unimplemented");
+        super.close();
+        stream.destroy();
+        return new GlkStreamResult(0, writeCount);
     }
 
     @Override
     public GlkWindowSize getSize() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public void setArrangement(int method, int size, GlkWindow key) {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public GlkWindowArrangement getArrangement() {
         throw new RuntimeException("unimplemented");
     }
 
@@ -79,17 +101,38 @@ class WindowTextBuffer extends Window {
 
     @Override
     public void clear() throws IOException {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public void moveCursor(int x, int y) throws IOException {
-        throw new RuntimeException("unimplemented");
+        updateQueueLatest(false).clear = true;
     }
 
     @Override
     public boolean styleDistinguish(int style1, int style2) {
-        throw new RuntimeException("unimplemented");
+        switch (style1) {
+        case GlkStream.StyleEmphasized:
+        case GlkStream.StylePreformatted:
+        case GlkStream.StyleHeader:
+        case GlkStream.StyleSubheader:
+        case GlkStream.StyleAlert:
+        case GlkStream.StyleNote:
+        case GlkStream.StyleBlockQuote:
+        case GlkStream.StyleInput:
+            return style1 != style2;
+        default:
+            break;
+        }
+        switch (style2) {
+        case GlkStream.StyleEmphasized:
+        case GlkStream.StylePreformatted:
+        case GlkStream.StyleHeader:
+        case GlkStream.StyleSubheader:
+        case GlkStream.StyleAlert:
+        case GlkStream.StyleNote:
+        case GlkStream.StyleBlockQuote:
+        case GlkStream.StyleInput:
+            return style1 != style2;
+        default:
+            break;
+        }
+        return false;
     }
 
     @Override
@@ -99,57 +142,103 @@ class WindowTextBuffer extends Window {
 
     @Override
     public void requestLineEvent(GlkByteArray buffer, int initLength) {
-        throw new RuntimeException("unimplemented");
+        if (lineEventRequested || charEventRequested) {
+            throw new IllegalStateException();
+        }
+        lineEventRequested = true;
+        lineEventBuffer = buffer;
     }
 
     @Override
     public void requestCharEvent() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public void requestMouseEvent() {
+        if (lineEventRequested || charEventRequested) {
+            throw new IllegalStateException();
+        }
+        charEventRequested = true;
     }
 
     @Override
     public GlkEvent cancelLineEvent() {
-        throw new RuntimeException("unimplemented");
+        if (!lineEventRequested) {
+            return new GlkEvent(GlkEvent.TypeNone, this, 0, 0);
+        }
+        lineEventRequested = false;
+        lineEventBuffer = null;
+        return new GlkEvent(GlkEvent.TypeLineInput, this, 0, 0);
     }
 
     @Override
     public void cancelCharEvent() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public void cancelMouseEvent() {
-    }
-
-    @Override
-    public boolean drawImage(int resourceId, int val1, int val2) throws IOException {
-        return false;
-    }
-
-    @Override
-    public boolean drawScaledImage(int resourceId, int val1, int val2, int width, int height) throws IOException {
-        return false;
+        charEventRequested = false;
     }
 
     @Override
     public void flowBreak() {
-        throw new RuntimeException("unimplemented");
+        updateQueueLatest(false).flowBreak = true;
     }
 
-    @Override
-    public void eraseRect(int left, int top, int width, int height) {
-    }
 
     @Override
-    public void fillRect(int color, int left, int top, int width, int height) {
+    public void setEchoLineEvent(boolean echoLineEvent) {
+        this.echoLineEvent = echoLineEvent;
     }
 
-    @Override
-    public void setBackgroundColor(int color) {
-        throw new RuntimeException("unimplemented");
-    }
+    
+    private final GlkWindowStream stream = new GlkWindowStream(this) {
+        @Override
+        public void putChar(int ch) throws IOException {
+            super.putChar(ch);
+            writeCount++;
+            updateQueueLatest(false).string.append((char) (ch & 255));
+        }
+
+        @Override
+        public void putString(CharSequence string) throws IOException {
+            super.putString(string);
+            writeCount += string.length();
+            updateQueueLatest(false).string.append(string);
+        }
+
+        @Override
+        public void putBuffer(GlkByteArray buffer) throws IOException {
+            super.putBuffer(buffer);
+            writeCount += buffer.getArrayLength();
+            Update update = updateQueueLatest(false);
+            for (int i = 0; i < buffer.getArrayLength(); i++) {
+                update.string.append((char) (buffer.getByteElementAt(i) & 255));
+            }
+        }
+
+        @Override
+        public void putCharUni(int ch) throws IOException {
+            super.putCharUni(ch);
+            writeCount++;
+            updateQueueLatest(false).string.append(Character.toChars(ch));
+        }
+
+        @Override
+        public void putStringUni(UnicodeString string) throws IOException {
+            super.putStringUni(string);
+            writeCount += string.codePointCount();
+            updateQueueLatest(false).string.append(string);
+        }
+
+        @Override
+        public void putBufferUni(GlkIntArray buffer) throws IOException {
+            super.putBufferUni(buffer);
+            writeCount += buffer.getArrayLength();
+            Update update = updateQueueLatest(false);
+            for (int i = 0; i < buffer.getArrayLength(); i++) {
+                update.string.append(Character.toChars(buffer.getIntElementAt(i)));
+            }
+        }
+
+        @Override
+        public void setStyle(int style) {
+            super.setStyle(style);
+            if (updateQueueLatest(false).style != style) {
+                updateQueueLatest(true).style = style;
+            }
+        }
+    };
 }
