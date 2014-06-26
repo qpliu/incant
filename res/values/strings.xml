@@ -12,6 +12,8 @@
   <string name="downloaded_at">Downloaded %tD</string>
   <string name="saved_recently">Saved %tr</string>
   <string name="saved_at">Saved %tD</string>
+  <string name="play_zcode">[Z-code]</string>
+  <string name="play_glulx">[Glulx]</string>
   <string name="keyboard">Keyboard</string>
   <string name="skip">Skip</string>
   <string name="next">Next</string>

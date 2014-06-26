@@ -22,8 +22,10 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URLEncoder;
 
 import com.yrek.ifstd.blorb.Blorb;
 import com.yrek.ifstd.glk.Glk;
@@ -34,6 +36,8 @@ import com.yrek.ifstd.glk.GlkFile;
 import com.yrek.ifstd.glk.GlkGestalt;
 import com.yrek.ifstd.glk.GlkIntArray;
 import com.yrek.ifstd.glk.GlkStream;
+import com.yrek.ifstd.glk.GlkStreamMemory;
+import com.yrek.ifstd.glk.GlkStreamMemoryUnicode;
 import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.UnicodeString;
 import com.yrek.incant.R;
@@ -74,10 +78,12 @@ public class GlkActivity extends Activity {
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
-        suspendState = savedInstanceState.getSerializable(SUSPEND_STATE);
-
-        //... restore window heirarchy, streams, files, schannels
         rootWindow = null;
+        if (savedInstanceState != null) {
+            suspendState = savedInstanceState.getSerializable(SUSPEND_STATE);
+            //... restore window heirarchy, streams, files, schannels
+        }
+
         glkDispatch = new GlkDispatch(glk);
     }
 
@@ -91,7 +97,7 @@ public class GlkActivity extends Activity {
     protected void onStart() {
         super.onStart();
         //... generate window arrangement and redraw events
-        main.init(glkDispatch, suspendState);
+        main.init(this, glkDispatch, suspendState);
         //... init speechRecognizer and textToSpeech
     }
 
@@ -118,12 +124,28 @@ public class GlkActivity extends Activity {
         suspendState = main.suspend();
     }
 
+    void post(Runnable runnable) {
+        frameLayout.post(runnable);
+    }
+
     private class Exit extends RuntimeException {}
 
     private final Glk glk = new Glk() {
         @Override
-        public void main(Runnable main) throws IOException {
-            throw new RuntimeException("unimplemented");
+        public void main(Runnable runMain) throws IOException {
+            boolean exited = false;
+            try {
+                runMain.run();
+            } catch (Exit e) {
+                exited = true;
+            }
+            if (exited || main.finished()) {
+                post(new Runnable() {
+                    @Override public void run() {
+                        finish();
+                    }
+                });
+            }
         }
 
         @Override
@@ -212,6 +234,9 @@ public class GlkActivity extends Activity {
             Window window = Window.open(GlkActivity.this, (Window) split, method, size, winType, rock);
             if (window != null && rootWindow == split) {
                 rootWindow = window.parent;
+                if (rootWindow == null) {
+                    rootWindow = window;
+                }
             }
             return window;
         }
@@ -225,22 +250,22 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkStream streamOpenFile(GlkFile file, int mode, int rock) throws IOException {
-            throw new RuntimeException("unimplemented");
+            return new StreamFile((FileRef) file, mode, false, rock);
         }
 
         @Override
         public GlkStream streamOpenFileUni(GlkFile file, int mode, int rock) throws IOException {
-            throw new RuntimeException("unimplemented");
+            return new StreamFile((FileRef) file, mode, true, rock);
         }
 
         @Override
         public GlkStream streamOpenMemory(GlkByteArray memory, int mode, int rock) {
-            throw new RuntimeException("unimplemented");
+            return new GlkStreamMemory(memory, rock);
         }
 
         @Override
         public GlkStream streamOpenMemoryUni(GlkIntArray memory, int mode, int rock) {
-            throw new RuntimeException("unimplemented");
+            return new GlkStreamMemoryUnicode(memory, rock);
         }
 
         @Override
@@ -250,7 +275,7 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkStream streamGetCurrent() {
-            throw new RuntimeException("unimplemented");
+            return currentStream;
         }
 
         @Override
@@ -305,27 +330,36 @@ public class GlkActivity extends Activity {
 
         @Override
         public void styleHintSet(int winType, int style, int hint, int value) {
+            if (true) { //... tmp
+                return;
+            } //... tmp
             throw new RuntimeException("unimplemented");
         }
 
         @Override
         public void styleHintClear(int winType, int style, int hint) {
+            if (true) { //... tmp
+                return;
+            } //... tmp
             throw new RuntimeException("unimplemented");
         }
 
 
         @Override
         public GlkFile fileCreateTemp(int usage, int rock) throws IOException {
-            throw new RuntimeException("unimplemented");
+            return new FileRef(File.createTempFile("glk.",".tmp"), usage, GlkFile.ModeReadWrite, rock);
         }
 
         @Override
         public GlkFile fileCreateByName(int usage, CharSequence name, int rock) throws IOException {
-            throw new RuntimeException("unimplemented");
+            return new FileRef(new File(main.getDir(GlkActivity.this), URLEncoder.encode("glk."+name, "UTF-8")), usage, GlkFile.ModeReadWrite, rock);
         }
 
         @Override
         public GlkFile fileCreateByPrompt(int usage, int mode, int rock) throws IOException {
+            if (usage == GlkFile.UsageSavedGame) {
+                return new FileRef(main.getSaveFile(GlkActivity.this), usage, mode, rock);
+            }
             throw new RuntimeException("unimplemented");
         }
 

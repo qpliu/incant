@@ -10,10 +10,11 @@ import com.yrek.ifstd.glk.GlkDispatch;
 
 public interface GlkMain extends Serializable {
     public String name();
-    public void init(GlkDispatch glk, Serializable suspendState);
+    public void init(Context context, GlkDispatch glk, Serializable suspendState);
     public void start();
     public void requestSuspend();
     public Serializable suspend();
+    public boolean finished();
     public Blorb getBlorb(Context context);
     public File getSaveFile(Context context);
     public File getDir(Context context);

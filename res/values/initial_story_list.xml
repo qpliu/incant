@@ -50,6 +50,16 @@
     <item>http://mirror.ifarchive.org/if-archive/games/zcode/Bronze.zblorb</item>
     <item/>
     <item/>
+
+<!-- -->
+    <item>Glulxercise</item>
+    <item>Andrew Plotkin</item>
+    <item>A Glulx interpreter unit test</item>
+    <item>a unit test that runs through all the Glulx opcodes and features</item>
+    <item>http://www.eblong.com/zarf/glulx/glulxercise.ulx</item>
+    <item/>
+    <item/>
+<!-- -->
   </string-array>
 
   <string name="ifarchive_scrape_url">http://mirror.ifarchive.org/indexes/date_1.html</string>

@@ -54,6 +54,13 @@
 	   android:text="@string/play"
 	   android:id="@+id/play"
 	   />
+	<TextView
+	   android:layout_column="2"
+	   android:layout_span="1"
+	   android:id="@+id/play_text"
+	   android:scrollHorizontally="true"
+	   android:ellipsize="marquee"
+	   />
       </TableRow>
       <TableRow>
 	<RelativeLayout

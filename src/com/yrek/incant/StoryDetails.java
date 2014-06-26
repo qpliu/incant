@@ -13,6 +13,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.yrek.incant.glk.GlkActivity;
+
 public class StoryDetails extends Activity {
     private static final String TAG = StoryDetails.class.getSimpleName();
 
@@ -135,10 +137,13 @@ public class StoryDetails extends Activity {
                             intent.putExtra(Incant.STORY, story);
                             startActivity(intent);
                         } else {
-                            Toast.makeText(StoryDetails.this, "Glulx not implemented", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(StoryDetails.this, GlkActivity.class);
+                            intent.putExtra(GlkActivity.GLK_MAIN, new GlulxStory(story, story.getName(StoryDetails.this)));
+                            startActivity(intent);
                         }
                     }
                 });
+                ((TextView) findViewById(R.id.play_text)).setText(story.isZcode(StoryDetails.this) ? R.string.play_zcode : R.string.play_glulx);
                 if (story.getCoverImageFile(StoryDetails.this).exists()) {
                     findViewById(R.id.cover).setVisibility(View.VISIBLE);
                     ((ImageView) findViewById(R.id.cover)).setImageBitmap(story.getCoverImageBitmap(StoryDetails.this));

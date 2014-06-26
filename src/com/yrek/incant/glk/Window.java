@@ -1,5 +1,6 @@
 package com.yrek.incant.glk;
 
+import android.content.Context;
 import android.view.View;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ abstract class Window extends GlkWindow implements Serializable {
         super(rock);
     }
 
-    abstract View createView();
+    abstract View createView(Context context);
     abstract boolean hasPendingEvent();
     abstract GlkEvent getEvent(long timeout, boolean polling) throws InterruptedException;
 
@@ -38,7 +39,7 @@ abstract class Window extends GlkWindow implements Serializable {
 
     View getView() {
         if (view == null) {
-            view = createView();
+            view = createView(activity);
         }
         return view;
     }
@@ -47,11 +48,15 @@ abstract class Window extends GlkWindow implements Serializable {
         this.activity = activity;
     }
 
+    void post(Runnable runnable) {
+        activity.post(runnable);
+    }
+
     static Window open(GlkActivity activity, Window split, int method, int size, int winType, int rock) {
         Window newWindow = null;
         switch (winType) {
         case GlkWindow.TypeBlank:
-            throw new RuntimeException("unimplemented");
+            newWindow = new WindowBlank(rock);
         case GlkWindow.TypeTextBuffer:
             newWindow = new WindowTextBuffer(rock);
             break;

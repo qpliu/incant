@@ -56,4 +56,49 @@
   <style name="story_details_headline" parent="@style/story_details_name_style">
     <item name="android:textStyle">italic</item>
   </style>
+
+  <style name="glk_normal">
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="glk_emphasized">
+    <item name="android:textStyle">italic</item>
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="glk_preformatted">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="glk_header">
+    <item name="android:textStyle">bold</item>
+    <item name="android:textSize">20dp</item>
+  </style>
+
+  <style name="glk_subheader">
+    <item name="android:textStyle">bold</item>
+    <item name="android:textSize">16dp</item>
+  </style>
+
+  <style name="glk_alert">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#f00</item>
+  </style>
+
+  <style name="glk_note">
+    <item name="android:textSize">12dp</item>
+    <item name="android:textColor">#ccc</item>
+  </style>
+
+  <style name="glk_blockquote">
+    <item name="android:textSize">12dp</item>
+    <item name="android:textStyle">italic</item>
+    <item name="android:textColor">#def</item>
+  </style>
+
+  <style name="glk_input">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#acf</item>
+  </style>
 </resources>

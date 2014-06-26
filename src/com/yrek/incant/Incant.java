@@ -24,6 +24,8 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.HashSet;
 
+import com.yrek.incant.glk.GlkActivity;
+
 public class Incant extends Activity {
     private static final String TAG = Incant.class.getSimpleName();
     static final String STORY = "STORY";
@@ -261,7 +263,9 @@ public class Incant extends Activity {
                                 intent.putExtra(STORY, story);
                                 startActivity(intent);
                             } else {
-                                Toast.makeText(Incant.this, "Glulx not implemented", Toast.LENGTH_SHORT).show();
+                                Intent intent = new Intent(Incant.this, GlkActivity.class);
+                                intent.putExtra(GlkActivity.GLK_MAIN, new GlulxStory(story, story.getName(Incant.this)));
+                                startActivity(intent);
                             }
                         }
                     });

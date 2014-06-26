@@ -1,5 +1,6 @@
 package com.yrek.incant.glk;
 
+import android.content.Context;
 import android.view.View;
 
 import java.io.IOException;
@@ -29,7 +30,7 @@ class WindowPair extends Window {
     }
 
     @Override
-    View createView() {
+    View createView(Context context) {
         // LinearLayout
         throw new RuntimeException("unimplemented");
     }
