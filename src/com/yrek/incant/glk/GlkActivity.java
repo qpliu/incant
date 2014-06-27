@@ -6,11 +6,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-import android.speech.tts.TextToSpeech;
-import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -51,14 +46,10 @@ public class GlkActivity extends Activity {
     private Serializable suspendState;
 
     private FrameLayout frameLayout;
-    private Button keyboardButton;
-    private Button skipButton;
     private Button nextButton;
-    private EditText editText;
-    private InputMethodManager inputMethodManager;
-    private SpeechRecognizer speechRecognizer;
-    private TextToSpeech textToSpeech;
-    private Window rootWindow;
+    Input input;
+    Speech speech;
+    Window rootWindow;
     private GlkStream currentStream;
     private long lastTimerEvent = 0L;
     private long timerInterval = 0L;
@@ -66,16 +57,15 @@ public class GlkActivity extends Activity {
     private Object ioLock = new Object();
     private boolean outputPending = false;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.glk);
         frameLayout = (FrameLayout) findViewById(R.id.frame);
-        keyboardButton = (Button) findViewById(R.id.keyboard);
-        skipButton = (Button) findViewById(R.id.skip);
         nextButton = (Button) findViewById(R.id.next);
-        editText = (EditText) findViewById(R.id.edit);
-        inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(R.id.keyboard), (EditText) findViewById(R.id.edit));
+        speech = new Speech(this, (Button) findViewById(R.id.skip));
 
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
         rootWindow = null;
@@ -98,16 +88,15 @@ public class GlkActivity extends Activity {
         super.onStart();
         //... generate window arrangement and redraw events
         main.init(this, glkDispatch, suspendState);
-        //... init speechRecognizer and textToSpeech
+        input.onStart();
+        speech.onStart();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        //... speechRecognizer.destroy();
-        speechRecognizer = null;
-        //... textToSpeech.shutdown();
-        textToSpeech = null;
+        input.onStop();
+        speech.onStop();
     }
 
     @Override
@@ -119,9 +108,11 @@ public class GlkActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        main.requestSuspend();
-        //... generate a window arrangement event
-        suspendState = main.suspend();
+        if (!main.finished()) {
+            main.requestSuspend();
+            //... generate a window arrangement event
+            suspendState = main.suspend();
+        }
     }
 
     void post(Runnable runnable) {
@@ -174,21 +165,30 @@ public class GlkActivity extends Activity {
             case GlkGestalt.MouseInput:
                 return 0;
             case GlkGestalt.Timer:
-                return 1;
             case GlkGestalt.Graphics:
+                return 0;
             case GlkGestalt.DrawImage:
+                switch (value) {
+                case GlkWindow.TypeGraphics:
+                    return 1;
+                default:
+                    return 0;
+                }
             case GlkGestalt.Sound:
             case GlkGestalt.SoundVolume:
             case GlkGestalt.SoundNotify:
             case GlkGestalt.Hyperlinks:
             case GlkGestalt.HyperlinkInput:
             case GlkGestalt.SoundMusic:
-            case GlkGestalt.GraphicsTransparency:
                 return 0;
+            case GlkGestalt.GraphicsTransparency:
+                return 1;
             case GlkGestalt.Unicode:
                 return 1;
             case GlkGestalt.UnicodeNorm:
+                return 0;
             case GlkGestalt.LineInputEcho:
+                return 1;
             case GlkGestalt.LineTerminators:
             case GlkGestalt.LineTerminatorKey:
             case GlkGestalt.DateTime:
@@ -244,7 +244,11 @@ public class GlkActivity extends Activity {
 
         @Override
         public void setWindow(GlkWindow window) {
-            currentStream = window.getStream();
+            if (window == null) {
+                currentStream = null;
+            } else {
+                currentStream = window.getStream();
+            }
         }
 
 

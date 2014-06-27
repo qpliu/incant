@@ -19,6 +19,7 @@ class GlulxStory implements GlkMain {
     final String name;
     transient Thread thread = null;
     transient Glulx glulx = null;
+    transient GlkDispatch glk = null;
 
     GlulxStory(Story story, String name) {
         this.story = story;
@@ -32,6 +33,7 @@ class GlulxStory implements GlkMain {
 
     @Override
     public void init(Context context, GlkDispatch glk, Serializable suspendState) {
+        this.glk = glk;
         if (true) { //... tmp
             try {
                 glulx = new Glulx(story.getGlulxFile(context), glk);
@@ -47,7 +49,11 @@ class GlulxStory implements GlkMain {
     public void start() {
         thread = new Thread("glk") {
             @Override public void run() {
-                glulx.run();
+                try {
+                    glk.glk.main(glulx);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
         thread.start();

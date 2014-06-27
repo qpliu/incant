@@ -3,6 +3,7 @@ package com.yrek.incant.glk;
 import android.content.Context;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
+import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,6 +24,7 @@ import com.yrek.incant.R;
 
 class WindowTextBuffer extends Window {
     private static final long serialVersionUID = 0L;
+    private static final String TAG = WindowTextBuffer.class.getSimpleName();
 
     ArrayDeque<Update> updates = new ArrayDeque<Update>();
     private boolean lineEventRequested = false;
@@ -49,21 +51,40 @@ class WindowTextBuffer extends Window {
 
     @Override
     GlkEvent getEvent(long timeout, boolean polling) throws InterruptedException {
-        if (true) { //... tmp
-            if (hasPendingEvent() && !polling) {
-                if (timeout > 0) {
-                    Thread.sleep(timeout);
-                } else {
-                    Thread.sleep(5000L);
+        if (polling) {
+            return null;
+        } else if (lineEventRequested) {
+            activity.speech.resetSkip();
+            //... timeout unimplemented
+            String line = activity.input.getInput();
+            lineEventRequested = false;
+            int count = lineEventBuffer == null ? 0 : Math.min(lineEventBuffer.getArrayLength(), line.length());
+            for (int i = 0; i < count; i++) {
+                lineEventBuffer.setByteElementAt(i, line.charAt(i));
+            }
+            if (echoLineEvent) {
+                int saveStyle = updateQueueLast(true).style;
+                try {
+                    stream.setStyle(GlkStream.StyleInput);
+                    stream.putString(line);
+                    updates.peekLast().mute = true;
+                    stream.setStyle(saveStyle);
+                    stream.putChar(10);
+                } catch (IOException e) {
+                    Log.wtf(TAG,e);
+                    stream.setStyle(saveStyle);
                 }
             }
+            return new GlkEvent(GlkEvent.TypeLineInput, this, count, 0);
+        } else if (charEventRequested) {
+            activity.speech.resetSkip();
+            //... timeout unimplemented
+            char ch = activity.input.getCharInput();
+            charEventRequested = false;
+            return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
+        } else {
             return null;
-        } //... tmp
-        //... On speech recognizer, get String from SpeechMunger.chooseInput
-        //... then if echoLineEvent, save current style;
-        //... stream.setStyle(GlkStream.StyleInput); stream.putString(input);
-        //... stream.setStyle(the saved current style); stream.putChar(10)
-        throw new RuntimeException("unimplemented");
+        }
     }
 
     // Run in IO thread.  Recursively descend window tree.
@@ -76,44 +97,81 @@ class WindowTextBuffer extends Window {
     //   will scroll out of view (if text to speech is being skipped))
     @Override
     boolean updatePendingOutput(Runnable continueOutput, boolean doSpeech) {
-        if (true) { //... tmp
-            // just dump it all in just to be able to see something to start
-            final ScrollView scrollView = (ScrollView) view;
-            TextView textView = (TextView) scrollView.getChildAt(0);
-            int currentStyle = GlkStream.StyleNormal;
-            SpannableStringBuilder sb = new SpannableStringBuilder();
-            for (Update update = updates.pollFirst(); update != null; update = updates.pollFirst()) {
-                if (update.clear) {
-                    sb.clearSpans();
-                    sb.clear();
-                    textView.setText("");
-                }
-                int start = sb.length();
-                sb.append(update.string);
-                if (sb.length() > start) {
-                    sb.setSpan(getSpanForStyle(update.style), start, sb.length(), 0);
-                }
-                currentStyle = update.style;
+        if (!doSpeech) {
+            return false;
+        }
+        if (updates.size() == 0 || (updates.size() == 1 && updates.peekFirst().string.length() == 0)) {
+            return false;
+        }
+        final ScrollView scrollView = (ScrollView) view;
+        TextView textView = (TextView) scrollView.getChildAt(0);
+        int currentStyle = GlkStream.StyleNormal;
+        SpannableStringBuilder screenOutput = new SpannableStringBuilder();
+        StringBuilder speechOutput = new StringBuilder();
+        int endParagraphState = 0;
+        loop:
+        for (;;) {
+            Update update = updates.peekFirst();
+            if (update == null) {
+                break;
             }
-            textView.append(sb);
-            scrollView.postDelayed(new Runnable() {
+            if (update.clear) {
+                if (speechOutput.length() > 0 || screenOutput.length() > 0) {
+                    break;
+                }
+                textView.setText("");
+                update.clear = false;
+            }
+            if (update.flowBreak) {
+                if (speechOutput.length() > 0 || screenOutput.length() > 0) {
+                    break;
+                }
+                update.flowBreak = false;
+            }
+            currentStyle = update.style;
+            int start = screenOutput.length();
+            // Break at paragraph breaks.
+            for (int i = 0; i < update.string.length(); i++) {
+                if (update.string.charAt(i) != '\n') {
+                    endParagraphState = 1;
+                } else {
+                    switch (endParagraphState) {
+                    case 0: break;
+                    case 1: endParagraphState = 2; break;
+                    case 2:
+                        screenOutput.setSpan(getSpanForStyle(currentStyle), start, screenOutput.length(), 0);
+                        if (!update.mute) {
+                            speechOutput.append(update.string, 0, i);
+                        }
+                        update.string.delete(0, i);
+                        break loop;
+                    }
+                }
+                screenOutput.append(update.string.charAt(i));
+            }
+            if (!update.mute) {
+                speechOutput.append(update.string);
+            }
+            screenOutput.setSpan(getSpanForStyle(currentStyle), start, screenOutput.length(), 0);
+            updates.removeFirst();
+        }
+        if (screenOutput.length() > 0) {
+            textView.append(screenOutput);
+            post(new Runnable() {
                 @Override public void run() {
                     scrollView.fullScroll(View.FOCUS_DOWN);
                 }
-            }, 50L);
+            });
+        }
+        if (currentStyle != GlkStream.StyleNormal && updates.size() == 0) {
             stream.setStyle(currentStyle);
+        }
+        if (speechOutput.length() == 0) {
             return false;
-        } //... tmp
-        // Speak one paragraph at a time.
-        // Also break on clear and flowBreak.
-        // If one paragraph fills more than one screen, break
-        // at a sentence if possible, otherwise break at a word if
-        // possible, otherwise let all but the end of the monster word
-        // scroll off and break after it.
-        // If speech is being skipped, then if the output fills more
-        // than the screen, break at a word and enable the next button
-        // to post continueOutput on click.
-        throw new RuntimeException("unimplemented");
+        } else {
+            activity.speech.speak(speechOutput.toString(), continueOutput);
+            return true;
+        }
     }
 
     private TextAppearanceSpan getSpanForStyle(int style) {
@@ -142,13 +200,14 @@ class WindowTextBuffer extends Window {
     static class Update {
         boolean clear = false;
         boolean flowBreak = false;
+        boolean mute = false;
         int style = GlkStream.StyleNormal;
         StringBuilder string = new StringBuilder();
     }
 
     Update updateQueueLast(boolean continueString) {
         Update latest = updates.peekLast();
-        if (latest != null && (continueString || latest.string.length() == 0)) {
+        if (latest != null && (continueString || latest.string.length() == 0) && !latest.mute) {
             return latest;
         }
         Update newLatest = new Update();

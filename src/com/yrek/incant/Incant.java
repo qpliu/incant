@@ -278,6 +278,9 @@ public class Incant extends Activity {
                                 Bitmap image = coverImageCache.get(storyName);
                                 if (image == null) {
                                     image = story.getCoverImageBitmap(Incant.this);
+                                    if (image == null) {
+                                        return;
+                                    }
                                     coverImageCache.put(storyName, image);
                                 }
                                 final Bitmap bitmap = image;
