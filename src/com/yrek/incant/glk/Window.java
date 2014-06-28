@@ -1,6 +1,7 @@
 package com.yrek.incant.glk;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 
 import java.io.IOException;
@@ -15,8 +16,11 @@ import com.yrek.ifstd.glk.GlkWindowSize;
 import com.yrek.ifstd.glk.GlkWindowStream;
 
 abstract class Window extends GlkWindow implements Serializable {
+    private static final String TAG = Window.class.getSimpleName();
     transient GlkActivity activity;
     transient View view = null;
+    transient int windowWidth = 0;
+    transient int windowHeight = 0;
     WindowPair parent;
 
     Window(int rock) {
@@ -40,6 +44,7 @@ abstract class Window extends GlkWindow implements Serializable {
     View getView() {
         if (view == null) {
             view = createView(activity);
+            view.addOnLayoutChangeListener(windowMeasurer);
         }
         return view;
     }
@@ -61,8 +66,12 @@ abstract class Window extends GlkWindow implements Serializable {
             newWindow = new WindowTextBuffer(rock);
             break;
         case GlkWindow.TypeTextGrid:
-            throw new RuntimeException("unimplemented");
+            newWindow = new WindowTextGrid(rock);
+            break;
         case GlkWindow.TypeGraphics:
+            if (true) { //... tmp
+                return null;
+            } //... tmp
             throw new RuntimeException("unimplemented");
         default:
             return null;
@@ -74,10 +83,58 @@ abstract class Window extends GlkWindow implements Serializable {
             newParent.activity = activity;
             if (oldParent != null) {
                 oldParent.replaceChild(split, newParent);
+            } else {
+                assert split == activity.rootWindow;
+                activity.rootWindow = newParent;
             }
         }
         return newWindow;
     }
+
+
+    int getPixelWidth(int size) {
+        return size;
+    }
+
+    int getPixelHeight(int size) {
+        return size;
+    }
+
+    void waitForWindowMeasurer() {
+        if (windowWidth == 0) {
+            try {
+                synchronized (windowMeasurer) {
+                    while (windowWidth == 0) {
+                        windowMeasurer.wait();
+                    }
+                }
+            } catch (InterruptedException e) {
+                Log.wtf(TAG,e);
+            }
+        }
+    }
+
+    void setWindowSize(int width, int height) {
+        if (windowWidth != width || windowHeight != height) {
+            windowWidth = width;
+            windowHeight = height;
+            Log.d(TAG,"setWindowSize:w="+width+",h="+height);
+            onWindowSizeChanged(width, height);
+        }
+    }
+
+    void onWindowSizeChanged(int width, int height) {
+    }
+
+    private final View.OnLayoutChangeListener windowMeasurer = new View.OnLayoutChangeListener() {
+        @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            setWindowSize(right - left, bottom - top);
+            synchronized (windowMeasurer) {
+                windowMeasurer.notifyAll();
+            }
+        }
+    };
+
 
     @Override
     public GlkWindowStream getStream() {
@@ -87,8 +144,17 @@ abstract class Window extends GlkWindow implements Serializable {
     @Override
     public GlkStreamResult close() throws IOException {
         destroy();
-        if (parent != null) {
-            //... replace parent with sibling
+        Window sibling = (Window) getSibling();
+        if (sibling == null) {
+            assert this == activity.rootWindow;
+            activity.rootWindow = null;
+        } else if (parent.parent == null) {
+            assert parent == activity.rootWindow;
+            parent.destroy();
+            activity.rootWindow = sibling;
+        } else {
+            parent.destroy();
+            parent.parent.replaceChild(parent, sibling);
         }
         return new GlkStreamResult(0, 0);
     }

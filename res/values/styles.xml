@@ -59,26 +59,31 @@
 
   <style name="glk_normal">
     <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
   </style>
 
   <style name="glk_emphasized">
     <item name="android:textStyle">italic</item>
     <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
   </style>
 
   <style name="glk_preformatted">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
   </style>
 
   <style name="glk_header">
     <item name="android:textStyle">bold</item>
     <item name="android:textSize">20dp</item>
+    <item name="android:textColor">#fff</item>
   </style>
 
   <style name="glk_subheader">
     <item name="android:textStyle">bold</item>
     <item name="android:textSize">16dp</item>
+    <item name="android:textColor">#fff</item>
   </style>
 
   <style name="glk_alert">
@@ -98,6 +103,65 @@
   </style>
 
   <style name="glk_input">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#acf</item>
+  </style>
+
+  <style name="glk_grid_normal">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
+  </style>
+
+  <style name="glk_grid_emphasized">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textStyle">italic</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
+  </style>
+
+  <style name="glk_grid_preformatted">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
+  </style>
+
+  <style name="glk_grid_header">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textStyle">bold</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
+  </style>
+
+  <style name="glk_grid_subheader">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textStyle">bold|italic</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#fff</item>
+  </style>
+
+  <style name="glk_grid_alert">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#000</item>
+    <item name="android:background">#fff</item>
+  </style>
+
+  <style name="glk_grid_note">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textColor">#ccc</item>
+  </style>
+
+  <style name="glk_grid_blockquote">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">italic</item>
+    <item name="android:textColor">#def</item>
+  </style>
+
+  <style name="glk_grid_input">
+    <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
     <item name="android:textColor">#acf</item>
   </style>

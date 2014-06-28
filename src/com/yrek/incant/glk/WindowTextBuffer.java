@@ -20,7 +20,6 @@ import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.GlkWindowSize;
 import com.yrek.ifstd.glk.GlkWindowStream;
 import com.yrek.ifstd.glk.UnicodeString;
-import com.yrek.incant.R;
 
 class WindowTextBuffer extends Window {
     private static final long serialVersionUID = 0L;
@@ -175,26 +174,7 @@ class WindowTextBuffer extends Window {
     }
 
     private TextAppearanceSpan getSpanForStyle(int style) {
-        switch (style) {
-        case GlkStream.StyleEmphasized:
-            return new TextAppearanceSpan(activity, R.style.glk_emphasized);
-        case GlkStream.StylePreformatted:
-            return new TextAppearanceSpan(activity, R.style.glk_preformatted);
-        case GlkStream.StyleHeader:
-            return new TextAppearanceSpan(activity, R.style.glk_header);
-        case GlkStream.StyleSubheader:
-            return new TextAppearanceSpan(activity, R.style.glk_subheader);
-        case GlkStream.StyleAlert:
-            return new TextAppearanceSpan(activity, R.style.glk_alert);
-        case GlkStream.StyleNote:
-            return new TextAppearanceSpan(activity, R.style.glk_note);
-        case GlkStream.StyleBlockQuote:
-            return new TextAppearanceSpan(activity, R.style.glk_blockquote);
-        case GlkStream.StyleInput:
-            return new TextAppearanceSpan(activity, R.style.glk_input);
-        default:
-            return new TextAppearanceSpan(activity, R.style.glk_normal);
-        }
+        return new TextAppearanceSpan(activity, activity.main.getTextBufferStyle(style));
     }
 
     static class Update {
@@ -218,6 +198,25 @@ class WindowTextBuffer extends Window {
         return newLatest;
     }
 
+
+    @Override
+    int getPixelWidth(int size) {
+        activity.waitForTextMeasurer();
+        return size*activity.charWidth+activity.charHMargin;
+    }
+
+    @Override
+    int getPixelHeight(int size) {
+        activity.waitForTextMeasurer();
+        return size*activity.charHeight+activity.charVMargin;
+    }
+
+    @Override
+    void onWindowSizeChanged(int width, int height) {
+        Log.d(TAG,"screenSize="+((width-activity.charHMargin)/activity.charWidth)+"x"+((height-activity.charVMargin)/activity.charHeight));
+    }
+
+
     @Override
     public GlkWindowStream getStream() {
         return stream;
@@ -232,10 +231,14 @@ class WindowTextBuffer extends Window {
 
     @Override
     public GlkWindowSize getSize() {
-        if (true) { //... tmp
+        activity.waitForTextMeasurer();
+        // Do not waitForWindowMeasurer() because Glk.select() might not
+        // have been called yet.
+        if (activity.charWidth > 0 && activity.charHeight > 0 && windowWidth > 0 && windowHeight > 0) {
+            return new GlkWindowSize((windowWidth - activity.charHMargin)/activity.charWidth, (windowHeight - activity.charVMargin)/activity.charHeight);
+        } else {
             return new GlkWindowSize(40, 25);
-        } //... tmp
-        throw new RuntimeException("unimplemented");
+        }
     }
 
     @Override
@@ -250,33 +253,7 @@ class WindowTextBuffer extends Window {
 
     @Override
     public boolean styleDistinguish(int style1, int style2) {
-        switch (style1) {
-        case GlkStream.StyleEmphasized:
-        case GlkStream.StylePreformatted:
-        case GlkStream.StyleHeader:
-        case GlkStream.StyleSubheader:
-        case GlkStream.StyleAlert:
-        case GlkStream.StyleNote:
-        case GlkStream.StyleBlockQuote:
-        case GlkStream.StyleInput:
-            return style1 != style2;
-        default:
-            break;
-        }
-        switch (style2) {
-        case GlkStream.StyleEmphasized:
-        case GlkStream.StylePreformatted:
-        case GlkStream.StyleHeader:
-        case GlkStream.StyleSubheader:
-        case GlkStream.StyleAlert:
-        case GlkStream.StyleNote:
-        case GlkStream.StyleBlockQuote:
-        case GlkStream.StyleInput:
-            return style1 != style2;
-        default:
-            break;
-        }
-        return false;
+        return activity.main.getTextBufferStyle(style1) != activity.main.getTextBufferStyle(style2);
     }
 
     @Override

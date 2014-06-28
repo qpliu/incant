@@ -41,11 +41,15 @@ public class GlkActivity extends Activity {
     public static final String TAG = GlkActivity.class.getSimpleName();
     public static final String GLK_MAIN = "GLK_MAIN";
     private static final String SUSPEND_STATE = "SUSPEND_STATE";
-    private GlkMain main;
+    GlkMain main;
     private GlkDispatch glkDispatch;
     private Serializable suspendState;
 
     private FrameLayout frameLayout;
+    int charWidth = 0;
+    int charHeight = 0;
+    int charHMargin = 0;
+    int charVMargin = 0;
     private Button nextButton;
     Input input;
     Speech speech;
@@ -66,6 +70,8 @@ public class GlkActivity extends Activity {
         nextButton = (Button) findViewById(R.id.next);
         input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(R.id.keyboard), (EditText) findViewById(R.id.edit));
         speech = new Speech(this, (Button) findViewById(R.id.skip));
+        findViewById(R.id.onexone).addOnLayoutChangeListener(textMeasurer);
+        findViewById(R.id.twoxtwo).addOnLayoutChangeListener(textMeasurer);
 
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
         rootWindow = null;
@@ -102,7 +108,16 @@ public class GlkActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        main.start();
+        main.start(new Runnable() {
+            @Override public void run() {
+                try {
+                    speech.waitForInit();
+                } catch (InterruptedException e) {
+                    Log.wtf(TAG,e);
+                }
+                waitForTextMeasurer();
+            }
+        });
     }
 
     @Override
@@ -228,9 +243,6 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkWindow windowOpen(GlkWindow split, int method, int size, int winType, int rock) {
-            if (rootWindow != null || split != null || winType != GlkWindow.TypeTextBuffer) { //... temporary
-                return null; //... temporary
-            } //... temporary
             Window window = Window.open(GlkActivity.this, (Window) split, method, size, winType, rock);
             if (window != null && rootWindow == split) {
                 rootWindow = window.parent;
@@ -497,6 +509,50 @@ public class GlkActivity extends Activity {
             synchronized (ioLock) {
                 outputPending = false;
                 ioLock.notifyAll();
+            }
+        }
+    };
+
+    void waitForTextMeasurer() {
+        if (charWidth == 0) {
+            try {
+                synchronized (textMeasurer) {
+                    while (charWidth == 0) {
+                        textMeasurer.wait();
+                    }
+                }
+            } catch (InterruptedException e) {
+                Log.wtf(TAG,e);
+            }
+        }
+    }
+
+    private final View.OnLayoutChangeListener textMeasurer = new View.OnLayoutChangeListener() {
+        private int w1 = 0;
+        private int h1 = 0;
+        private int w2 = 0;
+        private int h2 = 0;
+
+        @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            switch (v.getId()) {
+            case R.id.onexone: w1 = right - left; h1 = bottom - top; break;
+            case R.id.twoxtwo: w2 = right - left; h2 = bottom - top; break;
+            default:
+            }
+            v.setVisibility(View.GONE);
+            if (w1 != 0 && w2 != 0) {
+                int oldw = charWidth;
+                int oldh = charHeight;
+                synchronized (this) {
+                    charWidth = w2 - w1;
+                    charHeight = h2 - h1;
+                    charHMargin = w2 - 2*charWidth;
+                    charVMargin = h2 - 2*charHeight;
+                    this.notifyAll();
+                }
+                if (charWidth != oldw || charHeight != oldh) {
+                    Log.d(TAG,"charSize="+charWidth+"x"+charHeight+",margin="+charHMargin+"x"+charVMargin+",1x="+w1+"x"+h1+",4x="+w2+"x"+h2);
+                }
             }
         }
     };

@@ -37,6 +37,14 @@ public class Speech {
         textToSpeech.shutdown();
     }
 
+    public void waitForInit() throws InterruptedException {
+        synchronized (utteranceProgressListener) {
+            while (!ready) {
+                utteranceProgressListener.wait();
+            }
+        }
+    }
+
     public void resetSkip() {
         speechCanceled = false;
     }
