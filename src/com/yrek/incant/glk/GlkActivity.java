@@ -35,7 +35,6 @@ import com.yrek.ifstd.glk.GlkStreamMemory;
 import com.yrek.ifstd.glk.GlkStreamMemoryUnicode;
 import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.UnicodeString;
-import com.yrek.incant.R;
 
 public class GlkActivity extends Activity {
     public static final String TAG = GlkActivity.class.getSimpleName();
@@ -65,15 +64,16 @@ public class GlkActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.glk);
-        frameLayout = (FrameLayout) findViewById(R.id.frame);
-        nextButton = (Button) findViewById(R.id.next);
-        input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(R.id.keyboard), (EditText) findViewById(R.id.edit));
-        speech = new Speech(this, (Button) findViewById(R.id.skip));
-        findViewById(R.id.onexone).addOnLayoutChangeListener(textMeasurer);
-        findViewById(R.id.twoxtwo).addOnLayoutChangeListener(textMeasurer);
-
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
+
+        setContentView(main.getGlkLayout());
+        frameLayout = (FrameLayout) findViewById(main.getFrameLayout());
+        nextButton = (Button) findViewById(main.getNextButton());
+        input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(main.getKeyboardButton()), (EditText) findViewById(main.getEditText()));
+        speech = new Speech(this, (Button) findViewById(main.getSkipButton()));
+        findViewById(main.getOneByOneMeasurer()).addOnLayoutChangeListener(textMeasurer);
+        findViewById(main.getTwoByTwoMeasurer()).addOnLayoutChangeListener(textMeasurer);
+
         rootWindow = null;
         if (savedInstanceState != null) {
             suspendState = savedInstanceState.getSerializable(SUSPEND_STATE);
@@ -534,10 +534,12 @@ public class GlkActivity extends Activity {
         private int h2 = 0;
 
         @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-            switch (v.getId()) {
-            case R.id.onexone: w1 = right - left; h1 = bottom - top; break;
-            case R.id.twoxtwo: w2 = right - left; h2 = bottom - top; break;
-            default:
+            if (v.getId() == main.getOneByOneMeasurer()) {
+                w1 = right - left;
+                h1 = bottom - top;
+            } else if (v.getId() == main.getTwoByTwoMeasurer()) {
+                w2 = right - left;
+                h2 = bottom - top;
             }
             v.setVisibility(View.GONE);
             if (w1 != 0 && w2 != 0) {

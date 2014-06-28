@@ -16,6 +16,8 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -38,12 +40,15 @@ class StoryLister {
         };
     }
 
-    public List<Story> getStories() throws IOException {
+    public List<Story> getStories(Comparator<Story> sort) throws IOException {
         ArrayList<Story> stories = new ArrayList<Story>();
         addDownloaded(stories);
         addInitial(stories);
         for (Scraper scraper : scrapers) {
             scraper.addStories(stories);
+        }
+        if (sort != null) {
+            Collections.sort(stories, sort);
         }
         return stories;
     }
@@ -53,6 +58,37 @@ class StoryLister {
             scraper.scrape();
         }
     }
+
+    public final Comparator<Story> SortByDefault = new Comparator<Story>() {
+        @Override public int compare(Story story1, Story story2) {
+            if (story1 == story2) {
+                return 0;
+            }
+            if (story1.isDownloaded(context)) {
+                if (!story2.isDownloaded(context)) {
+                    return -1;
+                }
+                if (story1.getSaveFile(context).exists()) {
+                    if (!story2.getSaveFile(context).exists()) {
+                        return -1;
+                    } else {
+                        return - (int) (story1.getSaveFile(context).lastModified() - story2.getSaveFile(context).lastModified());
+                    }
+                } else if (story2.getSaveFile(context).exists()) {
+                    return 1;
+                }
+                return (int) (story1.getStoryFile(context).lastModified() - story2.getStoryFile(context).lastModified());
+            } else if (story2.isDownloaded(context)) {
+                return 1;
+            } else {
+                return story1.getName(context).compareTo(story2.getName(context));
+            }
+        }
+        @Override public boolean equals(Object object) {
+            return this == object;
+        }
+    };
+
 
     private void addStory(Story story, ArrayList<Story> stories) {
         String name = story.getName(context);

@@ -132,15 +132,13 @@ public class StoryDetails extends Activity {
                 findViewById(R.id.play_container).setVisibility(View.VISIBLE);
                 findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) {
+                        Intent intent = new Intent(StoryDetails.this, GlkActivity.class);
                         if (story.isZcode(StoryDetails.this)) {
-                            Intent intent = new Intent(StoryDetails.this, Play.class);
-                            intent.putExtra(Incant.STORY, story);
-                            startActivity(intent);
+                            intent.putExtra(GlkActivity.GLK_MAIN, new ZCodeStory(story, story.getName(StoryDetails.this)));
                         } else {
-                            Intent intent = new Intent(StoryDetails.this, GlkActivity.class);
                             intent.putExtra(GlkActivity.GLK_MAIN, new GlulxStory(story, story.getName(StoryDetails.this)));
-                            startActivity(intent);
                         }
+                        startActivity(intent);
                     }
                 });
                 ((TextView) findViewById(R.id.play_text)).setText(story.isZcode(StoryDetails.this) ? R.string.play_zcode : R.string.play_glulx);

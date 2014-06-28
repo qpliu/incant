@@ -25,6 +25,7 @@
      android:layout_width="fill_parent" 
      android:layout_height="fill_parent" 
      android:id="@+id/frame"
+     android:background="@color/background"
      />
   <Button
      android:layout_width="wrap_content"
@@ -68,6 +69,7 @@
      android:id="@+id/edit"
      android:textColor="@color/input_text"
      android:background="@color/background"
+     android:layout_alignParentBottom="true"
      android:visibility="gone"
      android:inputType="text"
      android:clickable="false"

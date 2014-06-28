@@ -98,7 +98,7 @@ public class Incant extends Activity {
         storyListAdapter.setNotifyOnChange(false);
         storyListAdapter.clear();
         try {
-            storyListAdapter.addAll(storyLister.getStories());
+            storyListAdapter.addAll(storyLister.getStories(storyLister.SortByDefault));
         } catch (Exception e) {
             Log.wtf(TAG,e);
         }
@@ -258,15 +258,13 @@ public class Incant extends Activity {
                     download.setVisibility(View.GONE);
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override public void onClick(View v) {
+                            Intent intent = new Intent(Incant.this, GlkActivity.class);
                             if (story.isZcode(Incant.this)) {
-                                Intent intent = new Intent(Incant.this, Play.class);
-                                intent.putExtra(STORY, story);
-                                startActivity(intent);
+                                intent.putExtra(GlkActivity.GLK_MAIN, new ZCodeStory(story, story.getName(Incant.this)));
                             } else {
-                                Intent intent = new Intent(Incant.this, GlkActivity.class);
                                 intent.putExtra(GlkActivity.GLK_MAIN, new GlulxStory(story, story.getName(Incant.this)));
-                                startActivity(intent);
                             }
+                            startActivity(intent);
                         }
                     });
                     play.setVisibility(View.VISIBLE);

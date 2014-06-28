@@ -138,7 +138,7 @@ class WindowTextBuffer extends Window {
                     case 0: break;
                     case 1: endParagraphState = 2; break;
                     case 2:
-                        screenOutput.setSpan(getSpanForStyle(currentStyle), start, screenOutput.length(), 0);
+                        styleText(screenOutput, start, screenOutput.length(), currentStyle);
                         if (!update.mute) {
                             speechOutput.append(update.string, 0, i);
                         }
@@ -151,7 +151,7 @@ class WindowTextBuffer extends Window {
             if (!update.mute) {
                 speechOutput.append(update.string);
             }
-            screenOutput.setSpan(getSpanForStyle(currentStyle), start, screenOutput.length(), 0);
+            styleText(screenOutput, start, screenOutput.length(), currentStyle);
             updates.removeFirst();
         }
         if (screenOutput.length() > 0) {
@@ -173,7 +173,8 @@ class WindowTextBuffer extends Window {
         }
     }
 
-    private TextAppearanceSpan getSpanForStyle(int style) {
+    @Override
+    TextAppearanceSpan getSpanForStyle(int style) {
         return new TextAppearanceSpan(activity, activity.main.getTextBufferStyle(style));
     }
 

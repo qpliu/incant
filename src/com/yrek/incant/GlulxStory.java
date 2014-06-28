@@ -113,6 +113,47 @@ class GlulxStory implements GlkMain {
 
 
     @Override
+    public int getGlkLayout() {
+        return R.layout.glk;
+    }
+
+    @Override
+    public int getFrameLayout() {
+        return R.id.frame;
+    }
+
+    @Override
+    public int getNextButton() {
+        return R.id.next;
+    }
+
+    @Override
+    public int getKeyboardButton() {
+        return R.id.keyboard;
+    }
+
+    @Override
+    public int getEditText() {
+        return R.id.edit;
+    }
+
+    @Override
+    public int getSkipButton() {
+        return R.id.skip;
+    }
+
+    @Override
+    public int getOneByOneMeasurer() {
+        return R.id.onexone;
+    }
+
+    @Override
+    public int getTwoByTwoMeasurer() {
+        return R.id.twoxtwo;
+    }
+
+
+    @Override
     public int getTextBufferStyle(int style) {
         switch (style) {
         case GlkStream.StyleEmphasized:
@@ -158,5 +199,15 @@ class GlulxStory implements GlkMain {
         default:
             return R.style.glk_grid_normal;
         }
+    }
+
+    @Override
+    public Integer getStyleForegroundColor(int style) {
+        return null;
+    }
+
+    @Override
+    public Integer getStyleBackgroundColor(int style) {
+        return null;
     }
 }

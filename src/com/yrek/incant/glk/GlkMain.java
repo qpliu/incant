@@ -19,6 +19,17 @@ public interface GlkMain extends Serializable {
     public File getSaveFile(Context context);
     public File getDir(Context context);
 
+    public int getGlkLayout();
+    public int getFrameLayout();
+    public int getNextButton();
+    public int getKeyboardButton();
+    public int getEditText();
+    public int getSkipButton();
+    public int getOneByOneMeasurer();
+    public int getTwoByTwoMeasurer();
+
     public int getTextBufferStyle(int style);
     public int getTextGridStyle(int style);
+    public Integer getStyleForegroundColor(int style);
+    public Integer getStyleBackgroundColor(int style);
 }

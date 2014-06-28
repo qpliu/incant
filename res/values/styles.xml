@@ -3,6 +3,9 @@
   <color name="input_text">#acf</color>
   <color name="text">#fff</color>
   <color name="background">#000</color>
+  <color name="note">#ccc</color>
+  <color name="blockquote">#def</color>
+  <color name="alert">#f00</color>
 
   <style name="input_text">
     <item name="android:textColor">@color/input_text</item>
@@ -59,110 +62,157 @@
 
   <style name="glk_normal">
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_emphasized">
     <item name="android:textStyle">italic</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_preformatted">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_header">
     <item name="android:textStyle">bold</item>
     <item name="android:textSize">20dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_subheader">
     <item name="android:textStyle">bold</item>
     <item name="android:textSize">16dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_alert">
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#f00</item>
+    <item name="android:textColor">@color/alert</item>
   </style>
 
   <style name="glk_note">
     <item name="android:textSize">12dp</item>
-    <item name="android:textColor">#ccc</item>
+    <item name="android:textColor">@color/note</item>
   </style>
 
   <style name="glk_blockquote">
     <item name="android:textSize">12dp</item>
     <item name="android:textStyle">italic</item>
-    <item name="android:textColor">#def</item>
+    <item name="android:textColor">@color/blockquote</item>
   </style>
 
   <style name="glk_input">
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#acf</item>
+    <item name="android:textColor">@color/input_text</item>
   </style>
 
   <style name="glk_grid_normal">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_grid_emphasized">
     <item name="android:typeface">monospace</item>
     <item name="android:textStyle">italic</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_grid_preformatted">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_grid_header">
     <item name="android:typeface">monospace</item>
     <item name="android:textStyle">bold</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_grid_subheader">
     <item name="android:typeface">monospace</item>
     <item name="android:textStyle">bold|italic</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#fff</item>
+    <item name="android:textColor">@color/text</item>
   </style>
 
   <style name="glk_grid_alert">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#000</item>
-    <item name="android:background">#fff</item>
+    <item name="android:textColor">@color/alert</item>
   </style>
 
   <style name="glk_grid_note">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#ccc</item>
+    <item name="android:textColor">@color/note</item>
   </style>
 
   <style name="glk_grid_blockquote">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
     <item name="android:textStyle">italic</item>
-    <item name="android:textColor">#def</item>
+    <item name="android:textColor">@color/blockquote</item>
   </style>
 
   <style name="glk_grid_input">
     <item name="android:typeface">monospace</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:textColor">#acf</item>
+    <item name="android:textColor">@color/input_text</item>
+  </style>
+
+
+  <style name="zcode_normal">
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="zcode_italic">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">italic</item>
+  </style>
+
+  <style name="zcode_preformatted">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="zcode_bold">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">bold</item>
+  </style>
+
+  <style name="zcode_bolditalic">
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">bold|italic</item>
+  </style>
+
+  <style name="zcode_grid_normal">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+  </style>
+
+  <style name="zcode_grid_italic">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">italic</item>
+  </style>
+
+  <style name="zcode_grid_bold">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">bold</item>
+  </style>
+
+  <style name="zcode_grid_bolditalic">
+    <item name="android:typeface">monospace</item>
+    <item name="android:textSize">14dp</item>
+    <item name="android:textStyle">bold|italic</item>
   </style>
 </resources>

@@ -147,6 +147,7 @@ class WindowPair extends Window {
         } else {
             throw new IllegalArgumentException();
         }
+        newChild.parent = this;
         updateView = true;
     }
 

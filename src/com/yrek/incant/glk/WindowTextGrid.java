@@ -98,7 +98,8 @@ class WindowTextGrid extends Window {
         return false;
     }
 
-    private TextAppearanceSpan getSpanForStyle(int style) {
+    @Override
+    TextAppearanceSpan getSpanForStyle(int style) {
         return new TextAppearanceSpan(activity, activity.main.getTextGridStyle(style));
     }
 
@@ -130,7 +131,9 @@ class WindowTextGrid extends Window {
             }
         }
         for (int i = gridHeight; i < newGridHeight; i++) {
-            gridBuffer.append('\n');
+            if (i > 0) {
+                gridBuffer.append('\n');
+            }
             for (int j = 0; j < newGridWidth; j++) {
                 gridBuffer.append(' ');
             }
@@ -185,7 +188,7 @@ class WindowTextGrid extends Window {
     }
 
     @Override
-    public void clear() throws IOException {
+    public void clear() {
         gridBuffer.clear();
         gridBuffer.clearSpans();
         cursorX = 0;
@@ -202,6 +205,16 @@ class WindowTextGrid extends Window {
     public void moveCursor(int x, int y) throws IOException {
         cursorX = x;
         cursorY = y;
+    }
+
+    @Override
+    public int getCursorX() {
+        return cursorX;
+    }
+
+    @Override
+    public int getCursorY() {
+        return cursorY;
     }
 
     @Override
@@ -271,7 +284,7 @@ class WindowTextGrid extends Window {
         if (index >= 0 && index < gridBuffer.length()) {
             gridBuffer.replace(index, index+1, String.valueOf(ch));
             if (setSpan) {
-                gridBuffer.setSpan(getSpanForStyle(currentStyle), index, index+1, 0);
+                styleText(gridBuffer, index, index+1, currentStyle);
             }
         }
     }
@@ -281,7 +294,7 @@ class WindowTextGrid extends Window {
         public void putChar(int ch) throws IOException {
             super.putChar(ch);
             writeCount++;
-            putChar((char) (ch&255), true);
+            WindowTextGrid.this.putChar((char) (ch&255), true);
         }
 
         @Override
@@ -290,14 +303,14 @@ class WindowTextGrid extends Window {
             writeCount += string.length();
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < string.length(); i++) {
-                putChar((char) (string.charAt(i) & 255));
+                WindowTextGrid.this.putChar((char) (string.charAt(i) & 255), false);
             }
             int end = cursorY*(gridWidth+1) + cursorX;
             if (start < gridBuffer.length() && end > 0 && end > start) {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                gridBuffer.setSpan(getSpanForStyle(currentStyle), start, end, 0);
+                styleText(gridBuffer, start, end, currentStyle);
             }
         }
 
@@ -307,14 +320,14 @@ class WindowTextGrid extends Window {
             writeCount += buffer.getArrayLength();
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < buffer.getArrayLength(); i++) {
-                putChar((char) (buffer.getByteElementAt(i) & 255));
+                WindowTextGrid.this.putChar((char) (buffer.getByteElementAt(i) & 255), false);
             }
             int end = cursorY*(gridWidth+1) + cursorX;
             if (start < gridBuffer.length() && end > 0 && end > start) {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                gridBuffer.setSpan(getSpanForStyle(currentStyle), start, end, 0);
+                styleText(gridBuffer, start, end, currentStyle);
             }
         }
 
@@ -323,9 +336,9 @@ class WindowTextGrid extends Window {
             super.putCharUni(ch);
             writeCount++;
             if (Character.charCount(ch) == 1) {
-                putChar((char) ch, true);
+                WindowTextGrid.this.putChar((char) ch, true);
             } else {
-                putChar('?', true);
+                WindowTextGrid.this.putChar('?', true);
             }
         }
 
@@ -337,9 +350,9 @@ class WindowTextGrid extends Window {
             for (int i = 0; i < string.codePointCount(); i++) {
                 int ch = string.codePointAt(i);
                 if (Character.charCount(ch) == 1) {
-                    putChar((char) ch, true);
+                    WindowTextGrid.this.putChar((char) ch, false);
                 } else {
-                    putChar('?', true);
+                    WindowTextGrid.this.putChar('?', false);
                 }
             }
             int end = cursorY*(gridWidth+1) + cursorX;
@@ -347,7 +360,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                gridBuffer.setSpan(getSpanForStyle(currentStyle), start, end, 0);
+                styleText(gridBuffer, start, end, currentStyle);
             }
         }
 
@@ -359,9 +372,9 @@ class WindowTextGrid extends Window {
             for (int i = 0; i < buffer.getArrayLength(); i++) {
                 int ch = buffer.getIntElementAt(i);
                 if (Character.charCount(ch) == 1) {
-                    putChar((char) ch, true);
+                    WindowTextGrid.this.putChar((char) ch, false);
                 } else {
-                    putChar('?', true);
+                    WindowTextGrid.this.putChar('?', false);
                 }
             }
             int end = cursorY*(gridWidth+1) + cursorX;
@@ -369,7 +382,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                gridBuffer.setSpan(getSpanForStyle(currentStyle), start, end, 0);
+                styleText(gridBuffer, start, end, currentStyle);
             }
         }
 

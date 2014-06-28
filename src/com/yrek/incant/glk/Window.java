@@ -1,6 +1,10 @@
 package com.yrek.incant.glk;
 
 import android.content.Context;
+import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.View;
 
@@ -87,6 +91,8 @@ abstract class Window extends GlkWindow implements Serializable {
                 assert split == activity.rootWindow;
                 activity.rootWindow = newParent;
             }
+            newWindow.parent = newParent;
+            split.parent = newParent;
         }
         return newWindow;
     }
@@ -134,6 +140,25 @@ abstract class Window extends GlkWindow implements Serializable {
             }
         }
     };
+
+    TextAppearanceSpan getSpanForStyle(int style) {
+        return null;
+    }
+
+    void styleText(SpannableStringBuilder string, int start, int end, int style) {
+        TextAppearanceSpan span = getSpanForStyle(style);
+        if (span != null) {
+            string.setSpan(span, start, end, 0);
+        }
+        Integer color = activity.main.getStyleForegroundColor(style);
+        if (color != null) {
+            string.setSpan(new ForegroundColorSpan(color), start, end, 0);
+        }
+        color = activity.main.getStyleBackgroundColor(style);
+        if (color != null) {
+            string.setSpan(new BackgroundColorSpan(color), start, end, 0);
+        }
+    }
 
 
     @Override
@@ -197,6 +222,16 @@ abstract class Window extends GlkWindow implements Serializable {
 
     @Override
     public void moveCursor(int x, int y) throws IOException {
+    }
+
+    @Override
+    public int getCursorX() {
+        return 0;
+    }
+
+    @Override
+    public int getCursorY() {
+        return 0;
     }
 
     @Override
