@@ -7,6 +7,8 @@ import android.text.SpannableStringBuilder;
 import android.text.style.ImageSpan;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -41,7 +43,43 @@ class WindowTextBuffer extends Window {
 
     @Override
     View createView(Context context) {
-        ScrollView scrollView = new ScrollView(context);
+        final int[] scrollPosition = new int[1];
+        final GestureDetector scrollViewGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                Log.d(TAG,"onFling:vx="+velocityX+",vy="+velocityY);
+                if (Math.abs(3.5f*velocityY) < -velocityX) {
+                    activity.input.deleteWord();
+                }
+                return false;
+            }
+            @Override public boolean onDoubleTap(MotionEvent e) {
+                Log.d(TAG,"onDoubleTap:x="+e.getX()+",y="+e.getY()+","+(e.getY()+scrollPosition[0]));
+                TextView textView = (TextView) ((ScrollView) view).getChildAt(0);
+                int offset = textView.getOffsetForPosition(e.getX(), e.getY() + scrollPosition[0]);
+                CharSequence text = textView.getText();
+                int start = offset;
+                while (start-1 > 0 && Character.isLetterOrDigit(text.charAt(start-1))) {
+                    start--;
+                }
+                int end = offset;
+                while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) {
+                    end++;
+                }
+                Log.d(TAG,"offset="+offset+","+start+"-"+end+":"+text.subSequence(start, end));
+                activity.input.pasteInput(text.subSequence(start, end).toString());
+                return false;
+            }
+        });
+        ScrollView scrollView = new ScrollView(context) {
+            @Override public boolean onTouchEvent(MotionEvent motionEvent) {
+                scrollViewGestureDetector.onTouchEvent(motionEvent);
+                return super.onTouchEvent(motionEvent);
+            }
+            @Override protected void onScrollChanged(int left, int top, int oldLeft, int oldTop) {
+                super.onScrollChanged(left, top, oldLeft, oldTop);
+                scrollPosition[0] = top;
+            }
+        };
         scrollView.addView(new TextView(context));
         return scrollView;
     }
