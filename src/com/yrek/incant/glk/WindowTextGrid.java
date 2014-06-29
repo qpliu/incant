@@ -60,6 +60,7 @@ class WindowTextGrid extends Window {
         if (polling) {
             return null;
         } else if (lineEventRequested) {
+            activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
             String line = activity.input.getInput();
@@ -80,12 +81,15 @@ class WindowTextGrid extends Window {
                     stream.setStyle(saveStyle);
                 }
             }
+            activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeLineInput, this, count, 0);
         } else if (charEventRequested) {
+            activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
             char ch = activity.input.getCharInput();
             charEventRequested = false;
+            activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
         } else {
             return null;

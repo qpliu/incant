@@ -19,18 +19,6 @@
       </intent-filter>
     </activity>
     <activity
-       android:name=".Play"
-       android:label="@string/app_name"
-       android:exported="false"
-       android:parentActivityName="Incant"
-       android:screenOrientation="portrait"
-       >
-      <meta-data
-	 android:name="android.support.PARENT_ACTIVITY"
-	 android:value="Incant"
-	 />
-    </activity>
-    <activity
        android:name=".glk.GlkActivity"
        android:label="@string/app_name"
        android:exported="false"

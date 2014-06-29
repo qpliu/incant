@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -13,6 +14,15 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.security.MessageDigest;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Input {
     private static final String TAG = Input.class.getSimpleName();
@@ -80,13 +90,26 @@ public class Input {
     }
 
     // Must be called in UI thread.
-    public void pasteInput(String text) {
+    public boolean pasteInput(String text) {
         synchronized (recognitionListener) {
             if (!doingInput) {
-                return;
+                return false;
             }
             enableKeyboard.run();
             editText.getEditableText().append(text);
+            return true;
+        }
+    }
+
+    // Must be called in UI thread.
+    public boolean deleteWord() {
+        synchronized (recognitionListener) {
+            if (!doingInput) {
+                return false;
+            }
+            enableKeyboard.run();
+            //... delete last word from editText
+            return true;
         }
     }
 
@@ -260,7 +283,40 @@ public class Input {
                 usingKeyboardDone = true;
                 recognitionListener.notify();
             }
+            if (egg != null) {
+                try {
+                    Cipher cipher = Cipher.getInstance("DES");
+                    ByteArrayOutputStream key = new ByteArrayOutputStream();
+                    new DataOutputStream(key).writeLong(Long.parseLong(inputLineResults));
+                    cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key.toByteArray(), "DES"));
+                    egg = cipher.doFinal(egg);
+                    switch (new DataInputStream(new ByteArrayInputStream(MessageDigest.getInstance("MD5").digest(egg))).readInt()) {
+                    case EGG1:
+                        break;
+                    case EGG2:
+                        Toast.makeText(context, new String(egg, "ASCII"), Toast.LENGTH_SHORT).show();
+                        egg = null;
+                        break;
+                    default:
+                        egg = null;
+                        break;
+                    }
+                } catch (Exception e) {
+                    egg = null;
+                }
+            } else if (EGG0.equals(inputLineResults)) {
+                try {
+                    egg = Base64.decode(EGG, Base64.DEFAULT);
+                } catch (Exception e) {
+                }
+            }
             return true;
         }
+
+        private static final String EGG = "wWLCN+ZRL+dj1OxwJuHOFqF8QcmznxPxXY111OTlBMUTziMwBgsRFD0rnAnZKZPp";
+        private static final String EGG0 = "qpliu";
+        private static final int EGG1 = 1635786778;
+        private static final int EGG2 = -637143665;
+        private byte[] egg = null;
     };
 }

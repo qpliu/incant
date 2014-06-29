@@ -68,31 +68,39 @@ class WindowPair extends Window {
         if (updateView) {
             updateView = false;
             LinearLayout layout = (LinearLayout) getView();
-            layout.removeViews(0, layout.getChildCount());
+            layout.removeAllViews();
+            View view1 = child1.getView();
+            View view2 = child2.getView();
+            if (view1.getParent() != null) {
+                ((LinearLayout) view1.getParent()).removeView(view1);
+            }
+            if (view2.getParent() != null) {
+                ((LinearLayout) view2.getParent()).removeView(view2);
+            }
             switch (method & GlkWindowArrangement.MethodDirMask) {
             case GlkWindowArrangement.MethodLeft:
                 Log.d(TAG,"pair:MethodLeft");
                 layout.setOrientation(LinearLayout.HORIZONTAL);
-                layout.addView(child2.getView());
-                layout.addView(child1.getView());
+                layout.addView(view2);
+                layout.addView(view1);
                 break;
             case GlkWindowArrangement.MethodRight:
                 Log.d(TAG,"pair:MethodRight");
                 layout.setOrientation(LinearLayout.HORIZONTAL);
-                layout.addView(child1.getView());
-                layout.addView(child2.getView());
+                layout.addView(view1);
+                layout.addView(view2);
                 break;
             case GlkWindowArrangement.MethodAbove:
                 Log.d(TAG,"pair:MethodAbove");
                 layout.setOrientation(LinearLayout.VERTICAL);
-                layout.addView(child2.getView());
-                layout.addView(child1.getView());
+                layout.addView(view2);
+                layout.addView(view1);
                 break;
             case GlkWindowArrangement.MethodBelow:
                 Log.d(TAG,"pair:MethodBelow");
                 layout.setOrientation(LinearLayout.VERTICAL);
-                layout.addView(child1.getView());
-                layout.addView(child2.getView());
+                layout.addView(view1);
+                layout.addView(view2);
                 break;
             default:
                 throw new AssertionError();
@@ -101,20 +109,20 @@ class WindowPair extends Window {
             switch (method & GlkWindowArrangement.MethodDivisionMask) {
             case GlkWindowArrangement.MethodProportional:
                 Log.d(TAG,"pair:MethodProportional:size="+size);
-                child2.getView().setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, (float) size));
-                child1.getView().setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f - (float) size));
+                view2.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, (float) size));
+                view1.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f - (float) size));
                 break;
             case GlkWindowArrangement.MethodFixed:
                 switch (layout.getOrientation()) {
                 case LinearLayout.HORIZONTAL:
                     Log.d(TAG,"pair:MethodFixed,hor:size="+size+","+child2.getPixelWidth(size));
-                    child2.getView().setLayoutParams(new LinearLayout.LayoutParams(child2.getPixelWidth(size), ViewGroup.LayoutParams.MATCH_PARENT, 0f));
-                    child1.getView().setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f));
+                    view2.setLayoutParams(new LinearLayout.LayoutParams(child2.getPixelWidth(size), ViewGroup.LayoutParams.MATCH_PARENT, 0f));
+                    view1.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f));
                     break;
                 case LinearLayout.VERTICAL:
                     Log.d(TAG,"pair:MethodFixed,ver:size="+size+","+child2.getPixelHeight(size));
-                    child2.getView().setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, child2.getPixelHeight(size), 0f));
-                    child1.getView().setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f));
+                    view2.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, child2.getPixelHeight(size), 0f));
+                    view1.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 100f));
                     break;
                 default:
                     throw new AssertionError();

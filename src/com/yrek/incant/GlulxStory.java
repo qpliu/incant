@@ -152,6 +152,11 @@ class GlulxStory implements GlkMain {
         return R.id.twoxtwo;
     }
 
+    @Override
+    public int getProgressBar() {
+        return R.id.progress_bar;
+    }
+
 
     @Override
     public int getTextBufferStyle(int style) {

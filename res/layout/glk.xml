@@ -75,4 +75,11 @@
      android:clickable="false"
      android:focusable="false"
      />
+  <ProgressBar
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content"
+     android:id="@+id/progress_bar"
+     android:indeterminate="true"
+     android:layout_centerInParent="true"
+     />
 </RelativeLayout>

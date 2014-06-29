@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Space;
 import android.widget.TextView;
 
@@ -44,12 +45,13 @@ public class GlkActivity extends Activity {
     private GlkDispatch glkDispatch;
     private Serializable suspendState;
 
+    private View progressBar;
+    int progressBarCounter = 0;
     private FrameLayout frameLayout;
     int charWidth = 0;
     int charHeight = 0;
     int charHMargin = 0;
     int charVMargin = 0;
-    private Button nextButton;
     Input input;
     Speech speech;
     Window rootWindow;
@@ -67,8 +69,8 @@ public class GlkActivity extends Activity {
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
 
         setContentView(main.getGlkLayout());
+        progressBar = findViewById(main.getProgressBar());
         frameLayout = (FrameLayout) findViewById(main.getFrameLayout());
-        nextButton = (Button) findViewById(main.getNextButton());
         input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(main.getKeyboardButton()), (EditText) findViewById(main.getEditText()));
         speech = new Speech(this, (Button) findViewById(main.getSkipButton()));
         findViewById(main.getOneByOneMeasurer()).addOnLayoutChangeListener(textMeasurer);
@@ -108,6 +110,7 @@ public class GlkActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        showProgressBar();
         main.start(new Runnable() {
             @Override public void run() {
                 try {
@@ -132,6 +135,29 @@ public class GlkActivity extends Activity {
 
     void post(Runnable runnable) {
         frameLayout.post(runnable);
+    }
+
+    void showProgressBar() {
+        final int counter = progressBarCounter;
+        frameLayout.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (counter == progressBarCounter) {
+                    progressBarCounter++;
+                    progressBar.setVisibility(View.VISIBLE);
+                }
+            }
+        }, 2000L);
+    }
+
+    final Runnable hideProgressBar = new Runnable() {
+        @Override public void run() {
+            progressBarCounter++;
+            progressBar.setVisibility(View.GONE);
+        }
+    };
+
+    void hideProgressBar() {
+        post(hideProgressBar);
     }
 
     private class Exit extends RuntimeException {}
@@ -493,10 +519,10 @@ public class GlkActivity extends Activity {
         @Override
         public void run() {
             if (rootWindow == null) {
-                frameLayout.removeViews(0, frameLayout.getChildCount());
+                frameLayout.removeAllViews();
             } else {
                 if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != rootWindow.getView()) {
-                    frameLayout.removeViews(0, frameLayout.getChildCount());
+                    frameLayout.removeAllViews();
                     frameLayout.addView(rootWindow.getView());
                 }
                 if (rootWindow.updatePendingOutput(this, false)) {

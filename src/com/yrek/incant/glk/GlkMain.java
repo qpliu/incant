@@ -27,6 +27,7 @@ public interface GlkMain extends Serializable {
     public int getSkipButton();
     public int getOneByOneMeasurer();
     public int getTwoByTwoMeasurer();
+    public int getProgressBar();
 
     public int getTextBufferStyle(int style);
     public int getTextGridStyle(int style);

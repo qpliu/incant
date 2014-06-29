@@ -53,6 +53,7 @@ class WindowTextBuffer extends Window {
         if (polling) {
             return null;
         } else if (lineEventRequested) {
+            activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
             String line = activity.input.getInput();
@@ -74,12 +75,15 @@ class WindowTextBuffer extends Window {
                     stream.setStyle(saveStyle);
                 }
             }
+            activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeLineInput, this, count, 0);
         } else if (charEventRequested) {
+            activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
             char ch = activity.input.getCharInput();
             charEventRequested = false;
+            activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
         } else {
             return null;
@@ -102,6 +106,7 @@ class WindowTextBuffer extends Window {
         if (updates.size() == 0 || (updates.size() == 1 && updates.peekFirst().string.length() == 0)) {
             return false;
         }
+        activity.hideProgressBar();
         final ScrollView scrollView = (ScrollView) view;
         TextView textView = (TextView) scrollView.getChildAt(0);
         int currentStyle = GlkStream.StyleNormal;

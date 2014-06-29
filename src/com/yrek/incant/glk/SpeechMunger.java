@@ -15,6 +15,12 @@ public class SpeechMunger {
             return "wait";
         } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
             return "wear" + input.substring(5);
+        } else if (input.startsWith("but ")) {
+            return "put" + input.substring(3);
+        } else if (input.startsWith("we the ") || input.startsWith("we a ") || input.startsWith("we an ")) {
+            return "read" + input.substring(2);
+        } else if (input.startsWith("going to ")) {
+            return "go in" + input.substring(6);
         }
         return input;
     }
