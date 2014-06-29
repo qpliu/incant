@@ -87,7 +87,7 @@ class WindowTextGrid extends Window {
             activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
-            char ch = activity.input.getCharInput();
+            int ch = activity.input.getCharInput();
             charEventRequested = false;
             activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);

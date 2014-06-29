@@ -459,16 +459,4 @@ class Story implements Serializable {
             }
         }
     }
-
-    public String chooseInput(List<String> options) {
-        return SpeechMunger.chooseInput(options);
-    }
-
-    public char chooseCharacterInput(List<String> options) {
-        return SpeechMunger.chooseCharacterInput(options);
-    }
-
-    public String translateOutput(String output) {
-        return output;
-    }
 }

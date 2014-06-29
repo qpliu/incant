@@ -1,7 +1,10 @@
 package com.yrek.incant.glk;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.text.SpannableStringBuilder;
+import android.text.style.ImageSpan;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.View;
@@ -81,7 +84,7 @@ class WindowTextBuffer extends Window {
             activity.hideProgressBar();
             activity.speech.resetSkip();
             //... timeout unimplemented
-            char ch = activity.input.getCharInput();
+            int ch = activity.input.getCharInput();
             charEventRequested = false;
             activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
@@ -157,6 +160,9 @@ class WindowTextBuffer extends Window {
                 speechOutput.append(update.string);
             }
             styleText(screenOutput, start, screenOutput.length(), currentStyle);
+            if (update.image != null) {
+                screenOutput.setSpan(new ImageSpan(activity, update.image), start, screenOutput.length(), 0);
+            }
             updates.removeFirst();
         }
         if (screenOutput.length() > 0) {
@@ -187,6 +193,8 @@ class WindowTextBuffer extends Window {
         boolean clear = false;
         boolean flowBreak = false;
         boolean mute = false;
+        Bitmap image = null;
+        int imageAlign = 0;
         int style = GlkStream.StyleNormal;
         StringBuilder string = new StringBuilder();
     }
@@ -300,6 +308,34 @@ class WindowTextBuffer extends Window {
     @Override
     public void cancelCharEvent() {
         charEventRequested = false;
+    }
+
+    @Override
+    public boolean drawImage(int resourceId, int val1, int val2) throws IOException {
+        Bitmap image = activity.getImageResource(resourceId);
+        if (image == null) {
+            return false;
+        }
+        Update update = updateQueueLast(false);
+        update.image = image;
+        update.imageAlign = val1;
+        update.mute = true;
+        update.string.append("[image " + resourceId + "]");
+        return true;
+    }
+
+    @Override
+    public boolean drawScaledImage(int resourceId, int val1, int val2, int width, int height) throws IOException {
+        Bitmap image = activity.getImageResource(resourceId);
+        if (image == null) {
+            return false;
+        }
+        Update update = updateQueueLast(false);
+        update.image = Bitmap.createScaledBitmap(image, width, height, true);
+        update.imageAlign = val1;
+        update.mute = true;
+        update.string.append("[image " + resourceId + "]");
+        return true;
     }
 
     @Override

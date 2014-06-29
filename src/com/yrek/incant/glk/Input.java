@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.text.Editable;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -41,7 +42,7 @@ public class Input {
     private boolean usingKeyboardDone = false;
     private boolean doingInput = false;
     private String inputLineResults;
-    private char inputCharResults;
+    private int inputCharResults;
 
     public Input(Context context, InputMethodManager inputMethodManager, Button keyboardButton, EditText editText) {
         this.context = context;
@@ -71,7 +72,7 @@ public class Input {
         }
     }
 
-    public char getCharInput() throws InterruptedException {
+    public int getCharInput() throws InterruptedException {
         Log.d(TAG,"start getCharInput");
         usingKeyboard = false;
         usingKeyboardDone = false;
@@ -104,11 +105,23 @@ public class Input {
     // Must be called in UI thread.
     public boolean deleteWord() {
         synchronized (recognitionListener) {
-            if (!doingInput) {
+            if (!doingInput || !usingKeyboard) {
                 return false;
             }
-            enableKeyboard.run();
-            //... delete last word from editText
+            Editable editable = editText.getEditableText();
+            if (editable.length() == 0) {
+                return false;
+            }
+            boolean gotWord = false;
+            for (int i = editable.length() - 1; i >= 0; i--) {
+                if (editable.charAt(i) != ' ') {
+                    gotWord = true;
+                } else if (gotWord) {
+                    editable.delete(i+1, editable.length());
+                    return true;
+                }
+            }
+            editable.clear();
             return true;
         }
     }

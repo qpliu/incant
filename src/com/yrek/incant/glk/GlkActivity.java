@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.LruCache;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -62,6 +63,7 @@ public class GlkActivity extends Activity {
     private Object ioLock = new Object();
     private boolean outputPending = false;
 
+    private LruCache<Integer,Bitmap> imageResourceCache = new LruCache<Integer,Bitmap>(10);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -200,7 +202,12 @@ public class GlkActivity extends Activity {
             case GlkGestalt.Version:
                 return Glk.GlkVersion;
             case GlkGestalt.CharInput:
+                if (value == 10 || (value >= 32 && value < 127) || (value <= -2 && value >= -13) || (value <= -17 && value >= -28)) {
+                    return 1;
+                }
+                return 0;
             case GlkGestalt.LineInput:
+                return value >= 32 && value < 127 ? 1 : 0;
             case GlkGestalt.CharOutput:
                 return 1;
             case GlkGestalt.MouseInput:
@@ -211,6 +218,7 @@ public class GlkActivity extends Activity {
             case GlkGestalt.DrawImage:
                 switch (value) {
                 case GlkWindow.TypeGraphics:
+                case GlkWindow.TypeTextBuffer:
                     return 1;
                 default:
                     return 0;
@@ -491,29 +499,45 @@ public class GlkActivity extends Activity {
 
         @Override
         public boolean imageGetInfo(int resourceId, int[] size) {
+            Bitmap image = getImageResource(resourceId);
+            if (image == null) {
+                return false;
+            } else {
+                size[0] = image.getWidth();
+                size[1] = image.getHeight();
+                return true;
+            }
+        }
+    };
+
+    Bitmap getImageResource(int resourceId) {
+        synchronized (imageResourceCache) {
+            Bitmap image = imageResourceCache.get(resourceId);
+            if (image != null) {
+                return image;
+            }
             try {
                 Blorb blorb = main.getBlorb(GlkActivity.this);
                 if (blorb == null) {
-                    return false;
+                    return null;
                 }
                 for (Blorb.Resource res : blorb.resources()) {
                     if (res.getUsage() == Blorb.Pict && res.getNumber() == resourceId) {
                         Blorb.Chunk chunk = res.getChunk();
                         if (chunk == null || (chunk.getId() != Blorb.PNG && chunk.getId() != Blorb.JPEG)) {
-                            return false;
+                            return null;
                         }
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(chunk.getContents(), 0, chunk.getLength());
-                        size[0] = bitmap.getWidth();
-                        size[1] = bitmap.getHeight();
-                        return true;
+                        image = BitmapFactory.decodeByteArray(chunk.getContents(), 0, chunk.getLength());
+                        imageResourceCache.put(resourceId, image);
+                        return image;
                     }
                 }
             } catch (IOException e) {
                 Log.wtf(TAG,e);
             }
-            return false;
         }
-    };
+        return null;
+    }
 
     private final Runnable handlePendingOutput = new Runnable() {
         @Override
