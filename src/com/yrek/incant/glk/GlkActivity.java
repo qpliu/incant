@@ -63,7 +63,7 @@ public class GlkActivity extends Activity {
     private Object ioLock = new Object();
     private boolean outputPending = false;
 
-    private LruCache<Integer,Bitmap> imageResourceCache = new LruCache<Integer,Bitmap>(10);
+    private LruCache<Integer,Bitmap> imageResourceCache = new LruCache<Integer,Bitmap>(5);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,8 +213,9 @@ public class GlkActivity extends Activity {
             case GlkGestalt.MouseInput:
                 return 0;
             case GlkGestalt.Timer:
-            case GlkGestalt.Graphics:
                 return 0;
+            case GlkGestalt.Graphics:
+                return 1;
             case GlkGestalt.DrawImage:
                 switch (value) {
                 case GlkWindow.TypeGraphics:
@@ -451,19 +452,44 @@ public class GlkActivity extends Activity {
                     }
                 }
             }
-            for (;;) {
-                if (rootWindow == null) {
-                    throw new IllegalStateException();
-                }
-                GlkEvent event;
-                try {
-                    event = rootWindow.getEvent(timeToNextTimerEvent(), false);
-                } catch (InterruptedException e) {
-                    main.requestSuspend();
-                    event = new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
-                }
+            if (rootWindow == null) {
+                throw new IllegalStateException();
+            }
+            try {
+                GlkEvent event = rootWindow.getEvent(0L, true);
                 if (event != null) {
                     return event;
+                }
+            } catch (InterruptedException e) {
+                main.requestSuspend();
+                return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+            }
+            synchronized (ioLock) {
+                outputPending = true;
+                frameLayout.post(handlePendingSpeechOutput);
+                while (outputPending) {
+                    try {
+                        ioLock.wait();
+                    } catch (InterruptedException e) {
+                        main.requestSuspend();
+                        return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+                    }
+                }
+            }
+            for (;;) {
+                GlkEvent event;
+                try {
+                    event = rootWindow.getEvent(0L, true);
+                    if (event != null) {
+                        return event;
+                    }
+                    event = rootWindow.getEvent(timeToNextTimerEvent(), false);
+                    if (event != null) {
+                        return event;
+                    }
+                } catch (InterruptedException e) {
+                    main.requestSuspend();
+                    return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
                 }
                 event = timerEvent();
                 if (event != null) {
@@ -479,6 +505,7 @@ public class GlkActivity extends Activity {
                 event = rootWindow.getEvent(0L, true);
             } catch (InterruptedException e) {
                 main.requestSuspend();
+                return new GlkEvent(GlkEvent.TypeNone, null, 0, 0);
             }
             if (event != null) {
                 return event;
@@ -540,6 +567,27 @@ public class GlkActivity extends Activity {
     }
 
     private final Runnable handlePendingOutput = new Runnable() {
+        @Override
+        public void run() {
+            if (rootWindow == null) {
+                frameLayout.removeAllViews();
+            } else {
+                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != rootWindow.getView()) {
+                    frameLayout.removeAllViews();
+                    frameLayout.addView(rootWindow.getView());
+                }
+                if (rootWindow.updatePendingOutput(this, false)) {
+                    return;
+                }
+            }
+            synchronized (ioLock) {
+                outputPending = false;
+                ioLock.notifyAll();
+            }
+        }
+    };
+
+    private final Runnable handlePendingSpeechOutput = new Runnable() {
         @Override
         public void run() {
             if (rootWindow == null) {

@@ -53,6 +53,14 @@ class WindowPair extends Window {
 
     @Override
     synchronized GlkEvent getEvent(long timeout, boolean polling) throws InterruptedException {
+        GlkEvent event = child1.getEvent(timeout, true);
+        if (event != null) {
+            return event;
+        }
+        event = child2.getEvent(timeout, true);
+        if (event != null) {
+            return event;
+        }
         if (child1.hasPendingEvent()) {
             return child1.getEvent(timeout, polling);
         } else if (child2.hasPendingEvent()) {

@@ -2,7 +2,6 @@ package com.yrek.incant.glk;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.text.SpannableStringBuilder;
 import android.text.style.ImageSpan;
 import android.text.style.TextAppearanceSpan;

@@ -64,7 +64,7 @@ public class Incant extends Activity {
         saveTimeStyle = new TextAppearanceSpan(this, R.style.story_save_time);
         downloadTimeStyle = new TextAppearanceSpan(this, R.style.story_download_time);
 
-        coverImageCache = new LruCache<String,Bitmap>(30);
+        coverImageCache = new LruCache<String,Bitmap>(10);
     }
 
     @Override

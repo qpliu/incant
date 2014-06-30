@@ -73,10 +73,8 @@ abstract class Window extends GlkWindow implements Serializable {
             newWindow = new WindowTextGrid(rock);
             break;
         case GlkWindow.TypeGraphics:
-            if (true) { //... tmp
-                return null;
-            } //... tmp
-            throw new RuntimeException("unimplemented");
+            newWindow = new WindowGraphics(rock);
+            break;
         default:
             return null;
         }
