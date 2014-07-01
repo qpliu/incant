@@ -65,7 +65,11 @@ class WindowTextBuffer extends Window {
                     end++;
                 }
                 Log.d(TAG,"offset="+offset+","+start+"-"+end+":"+text.subSequence(start, end));
-                activity.input.pasteInput(text.subSequence(start, end).toString());
+                activity.input.pasteInput(new StringBuilder().append(text.subSequence(start, end)).append(' '));
+                return false;
+            }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                //... hyperlink events
                 return false;
             }
         });

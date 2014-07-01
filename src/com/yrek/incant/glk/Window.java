@@ -139,6 +139,12 @@ abstract class Window extends GlkWindow implements Serializable {
         }
     };
 
+    void clearPendingArrangeEvent() {
+    }
+
+    void clearPendingRedrawEvent() {
+    }
+
     TextAppearanceSpan getSpanForStyle(int style) {
         return null;
     }
@@ -148,13 +154,13 @@ abstract class Window extends GlkWindow implements Serializable {
         if (span != null) {
             string.setSpan(span, start, end, 0);
         }
-        Integer color = activity.main.getStyleForegroundColor(style);
+        Integer color = activity.getStyleForegroundColor(getType(), style);
         if (color != null) {
-            string.setSpan(new ForegroundColorSpan(color), start, end, 0);
+            string.setSpan(new ForegroundColorSpan(color | 0xff000000), start, end, 0);
         }
-        color = activity.main.getStyleBackgroundColor(style);
+        color = activity.getStyleBackgroundColor(getType(), style);
         if (color != null) {
-            string.setSpan(new BackgroundColorSpan(color), start, end, 0);
+            string.setSpan(new BackgroundColorSpan(color | 0xff000000), start, end, 0);
         }
     }
 

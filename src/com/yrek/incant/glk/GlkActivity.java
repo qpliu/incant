@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import com.yrek.ifstd.blorb.Blorb;
 import com.yrek.ifstd.glk.Glk;
@@ -59,11 +61,17 @@ public class GlkActivity extends Activity {
     private GlkStream currentStream;
     private long lastTimerEvent = 0L;
     private long timerInterval = 0L;
+    private boolean pendingArrangeEvent = false;
+    private boolean pendingRedrawEvent = false;
 
     private Object ioLock = new Object();
     private boolean outputPending = false;
 
     private LruCache<Integer,Bitmap> imageResourceCache = new LruCache<Integer,Bitmap>(5);
+
+    private HashMap<Integer,Integer> foregroundColorHint = new HashMap<Integer,Integer>();
+    private HashMap<Integer,Integer> backgroundColorHint = new HashMap<Integer,Integer>();
+    private HashSet<Integer> reverseHint = new HashSet<Integer>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,10 +104,13 @@ public class GlkActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        //... generate window arrangement and redraw events
         main.init(this, glkDispatch, suspendState);
         input.onStart();
         speech.onStart();
+        if (rootWindow != null) {
+            pendingArrangeEvent = true;
+            pendingRedrawEvent = true;
+        }
     }
 
     @Override
@@ -130,7 +141,7 @@ public class GlkActivity extends Activity {
         super.onPause();
         if (!main.finished()) {
             main.requestSuspend();
-            //... generate a window arrangement event
+            pendingArrangeEvent = true;
             suspendState = main.suspend();
         }
     }
@@ -160,6 +171,38 @@ public class GlkActivity extends Activity {
 
     void hideProgressBar() {
         post(hideProgressBar);
+    }
+
+    Integer getStyleForegroundColor(int winType, int style) {
+        if (!reverseHint.contains(winType + (style << 8))) {
+            Integer color = foregroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            return main.getStyleForegroundColor(style);
+        } else {
+            Integer color = backgroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            return main.getStyleBackgroundColor(style);
+        }
+    }
+
+    Integer getStyleBackgroundColor(int winType, int style) {
+        if (!reverseHint.contains(winType + (style << 8))) {
+            Integer color = backgroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            return main.getStyleBackgroundColor(style);
+        } else {
+            Integer color = foregroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            return main.getStyleForegroundColor(style);
+        }
     }
 
     private class Exit extends RuntimeException {}
@@ -211,7 +254,7 @@ public class GlkActivity extends Activity {
             case GlkGestalt.CharOutput:
                 return 1;
             case GlkGestalt.MouseInput:
-                return 0;
+                return 1;
             case GlkGestalt.Timer:
                 return 0;
             case GlkGestalt.Graphics:
@@ -381,18 +424,40 @@ public class GlkActivity extends Activity {
 
         @Override
         public void styleHintSet(int winType, int style, int hint, int value) {
-            if (true) { //... tmp
-                return;
-            } //... tmp
-            throw new RuntimeException("unimplemented");
+            switch (hint) {
+            case GlkStream.StyleHintTextColor:
+                foregroundColorHint.put(winType + (style << 8), value);
+                break;
+            case GlkStream.StyleHintBackColor:
+                backgroundColorHint.put(winType + (style << 8), value);
+                break;
+            case GlkStream.StyleHintReverseColor:
+                if (value != 0) {
+                    reverseHint.add(winType + (style << 8));
+                } else {
+                    reverseHint.remove(winType + (style << 8));
+                }
+                break;
+            default:
+                break;
+            }
         }
 
         @Override
         public void styleHintClear(int winType, int style, int hint) {
-            if (true) { //... tmp
-                return;
-            } //... tmp
-            throw new RuntimeException("unimplemented");
+            switch (hint) {
+            case GlkStream.StyleHintTextColor:
+                foregroundColorHint.remove(winType + (style << 8));
+                break;
+            case GlkStream.StyleHintBackColor:
+                backgroundColorHint.remove(winType + (style << 8));
+                break;
+            case GlkStream.StyleHintReverseColor:
+                reverseHint.remove(winType + (style << 8));
+                break;
+            default:
+                break;
+            }
         }
 
 
@@ -455,6 +520,16 @@ public class GlkActivity extends Activity {
             if (rootWindow == null) {
                 throw new IllegalStateException();
             }
+            if (pendingArrangeEvent) {
+                pendingArrangeEvent = false;
+                rootWindow.clearPendingArrangeEvent();
+                return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+            }
+            if (pendingRedrawEvent) {
+                pendingRedrawEvent = false;
+                rootWindow.clearPendingRedrawEvent();
+                return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
+            }
             try {
                 GlkEvent event = rootWindow.getEvent(0L, true);
                 if (event != null) {
@@ -500,6 +575,20 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkEvent selectPoll() {
+            if (pendingArrangeEvent) {
+                pendingArrangeEvent = false;
+                if (rootWindow != null) {
+                    rootWindow.clearPendingArrangeEvent();
+                    return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
+                }
+            }
+            if (pendingRedrawEvent) {
+                pendingRedrawEvent = false;
+                if (rootWindow != null) {
+                    rootWindow.clearPendingRedrawEvent();
+                    return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
+                }
+            }
             GlkEvent event = null;
             try {
                 event = rootWindow.getEvent(0L, true);

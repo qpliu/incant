@@ -4,6 +4,8 @@ import android.content.Context;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
@@ -36,6 +38,8 @@ class WindowTextGrid extends Window {
     private boolean echoLineEvent = true;
     private int writeCount = 0;
     private boolean pendingResizeEvent = false;
+    private boolean mouseEventRequested = false;
+    private int mouseIndex = -1;
 
     WindowTextGrid(int rock) {
         super(rock);
@@ -43,12 +47,28 @@ class WindowTextGrid extends Window {
 
     @Override
     View createView(Context context) {
-        return new TextView(context);
+        final GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                //... hyperlink events
+                if (mouseEventRequested) {
+                    TextView textView = (TextView) view;
+                    mouseIndex = ((TextView) view).getOffsetForPosition(e.getX(), e.getY());
+                    return true;
+                }
+                return false;
+            }
+        });
+        return new TextView(context) {
+            @Override public boolean onTouchEvent(MotionEvent motionEvent) {
+                gestureDetector.onTouchEvent(motionEvent);
+                return super.onTouchEvent(motionEvent);
+            }
+        };
     }
 
     @Override
     boolean hasPendingEvent() {
-        return lineEventRequested || charEventRequested || pendingResizeEvent;
+        return lineEventRequested || charEventRequested || pendingResizeEvent || (mouseEventRequested && mouseIndex >= 0);
     }
 
     @Override
@@ -56,9 +76,14 @@ class WindowTextGrid extends Window {
         if (pendingResizeEvent) {
             pendingResizeEvent = false;
             return new GlkEvent(GlkEvent.TypeArrange, this, 0, 0);
-        }
-        if (polling) {
+        } else if (polling) {
             return null;
+        } else if (mouseEventRequested && mouseIndex >= 0) {
+            int x = mouseIndex % (gridWidth + 1);
+            int y = mouseIndex / (gridWidth + 1);
+            mouseEventRequested = false;
+            mouseIndex = -1;
+            return new GlkEvent(GlkEvent.TypeMouseInput, this, x, y);
         } else if (lineEventRequested) {
             activity.hideProgressBar();
             activity.speech.resetSkip();
@@ -150,6 +175,11 @@ class WindowTextGrid extends Window {
         gridWidth = newGridWidth;
         gridHeight = newGridHeight;
         Log.d(TAG,"gridWidth="+gridWidth+",gridHeight="+gridHeight);
+    }
+
+    @Override
+    void clearPendingArrangeEvent() {
+        pendingResizeEvent = false;
     }
 
     private void cleanGridBufferSpans() {
@@ -252,6 +282,14 @@ class WindowTextGrid extends Window {
     }
 
     @Override
+    public void requestMouseEvent() {
+        if (!mouseEventRequested) {
+            mouseEventRequested = true;
+            mouseIndex = -1;
+        }
+    }
+
+    @Override
     public GlkEvent cancelLineEvent() {
         if (!lineEventRequested) {
             return new GlkEvent(GlkEvent.TypeNone, this, 0, 0);
@@ -264,6 +302,12 @@ class WindowTextGrid extends Window {
     @Override
     public void cancelCharEvent() {
         charEventRequested = false;
+    }
+
+    @Override
+    public void cancelMouseEvent() {
+        mouseEventRequested = false;
+        mouseIndex = -1;
     }
 
 

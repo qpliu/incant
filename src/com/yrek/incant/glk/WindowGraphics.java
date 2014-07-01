@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.io.IOException;
@@ -24,6 +26,9 @@ class WindowGraphics extends Window {
     private boolean hasPendingArrangeEvent = false;
     private boolean hasPendingRedrawEvent = false;
     private int backgroundColor = Color.WHITE;
+    private boolean mouseEventRequested = false;
+    private int mouseX = -1;
+    private int mouseY = -1;
 
     WindowGraphics(int rock) {
         super(rock);
@@ -31,6 +36,16 @@ class WindowGraphics extends Window {
 
     @Override
     View createView(Context context) {
+        final GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                if (mouseEventRequested) {
+                    mouseX = (int) e.getX();
+                    mouseY = (int) e.getY();
+                    return true;
+                }
+                return false;
+            }
+        });
         return new View(context) {
             @Override protected void onDraw(Canvas canvas) {
                 Bitmap buffer = graphicsBuffer;
@@ -38,12 +53,16 @@ class WindowGraphics extends Window {
                     canvas.drawBitmap(buffer, 0f, 0f, PAINT);
                 }
             }
+            @Override public boolean onTouchEvent(MotionEvent motionEvent) {
+                gestureDetector.onTouchEvent(motionEvent);
+                return super.onTouchEvent(motionEvent);
+            }
         };
     }
 
     @Override
     boolean hasPendingEvent() {
-        return hasPendingArrangeEvent || hasPendingRedrawEvent;
+        return hasPendingArrangeEvent || hasPendingRedrawEvent || (mouseEventRequested && mouseX >= 0);
     }
 
     @Override
@@ -55,6 +74,15 @@ class WindowGraphics extends Window {
         } else if (hasPendingRedrawEvent) {
             hasPendingRedrawEvent = false;
             return new GlkEvent(GlkEvent.TypeRedraw, this, 0, 0);
+        } else if (polling) {
+            return null;
+        } else if (mouseEventRequested && mouseX >= 0) {
+            int x = mouseX;
+            int y = mouseY;
+            mouseEventRequested = false;
+            mouseX = -1;
+            mouseY = -1;
+            return new GlkEvent(GlkEvent.TypeMouseInput, this, x, y);
         }
         return null;
     }
@@ -80,6 +108,16 @@ class WindowGraphics extends Window {
     }
 
     @Override
+    void clearPendingArrangeEvent() {
+        hasPendingArrangeEvent = false;
+    }
+
+    @Override
+    void clearPendingRedrawEvent() {
+        hasPendingRedrawEvent = false;
+    }
+
+    @Override
     public GlkWindowSize getSize() {
         if (graphicsBuffer == null) {
             return new GlkWindowSize(0, 0);
@@ -100,6 +138,22 @@ class WindowGraphics extends Window {
         }
         graphicsBuffer.eraseColor(backgroundColor);
         dirty = true;
+    }
+
+    @Override
+    public void requestMouseEvent() {
+        if (!mouseEventRequested) {
+            mouseEventRequested = true;
+            mouseX = -1;
+            mouseY = -1;
+        }
+    }
+
+    @Override
+    public void cancelMouseEvent() {
+        mouseEventRequested = false;
+        mouseX = -1;
+        mouseY = -1;
     }
 
     @Override

@@ -91,7 +91,7 @@ public class Input {
     }
 
     // Must be called in UI thread.
-    public boolean pasteInput(String text) {
+    public boolean pasteInput(CharSequence text) {
         synchronized (recognitionListener) {
             if (!doingInput) {
                 return false;

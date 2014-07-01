@@ -72,6 +72,18 @@ class WindowPair extends Window {
     }
 
     @Override
+    void clearPendingArrangeEvent() {
+        child1.clearPendingArrangeEvent();
+        child2.clearPendingArrangeEvent();
+    }
+
+    @Override
+    void clearPendingRedrawEvent() {
+        child1.clearPendingRedrawEvent();
+        child2.clearPendingRedrawEvent();
+    }
+
+    @Override
     synchronized boolean updatePendingOutput(Runnable continueOutput, boolean doSpeech) {
         if (updateView) {
             updateView = false;

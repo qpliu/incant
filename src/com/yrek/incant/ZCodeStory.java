@@ -37,6 +37,7 @@ class ZCodeStory implements GlkMain {
     transient GlkDispatch glk = null;
     transient File zcodeFile = null;
     transient File saveFile = null;
+    transient boolean suspendRequested = false;
 
     ZCodeStory(Story story, String name) {
         this.story = story;
@@ -70,6 +71,7 @@ class ZCodeStory implements GlkMain {
                     glk.glk.main(zcpu);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
+                } catch (ZQuitException e) {
                 }
                 thread = null;
             }
@@ -79,6 +81,7 @@ class ZCodeStory implements GlkMain {
 
     @Override
     public void requestSuspend() {
+        suspendRequested = true;
         //... restore from suspendState unimplemented
     }
 
@@ -540,6 +543,9 @@ class ZCodeStory implements GlkMain {
             try {
                 for (;;) {
                     GlkEvent event = glk.glk.select();
+                    if (suspendRequested) {
+                        throw new ZQuitException();
+                    }
                     if (event.type == GlkEvent.TypeLineInput) {
                         sb.append(lineEventBuffer, 0, event.val1);
                         return 10;
@@ -558,6 +564,9 @@ class ZCodeStory implements GlkMain {
             try {
                 for (;;) {
                     GlkEvent event = glk.glk.select();
+                    if (suspendRequested) {
+                        throw new ZQuitException();
+                    }
                     if (event.type == GlkEvent.TypeCharInput) {
                         return event.val1;
                     }
