@@ -14,6 +14,7 @@ public interface GlkMain extends Serializable {
     public void start(Runnable waitForInit);
     public void requestSuspend();
     public Serializable suspend();
+    public boolean suspendRequested();
     public boolean finished();
     public Blorb getBlorb(Context context);
     public File getSaveFile(Context context);

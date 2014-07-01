@@ -32,8 +32,8 @@ public class Input {
     private final InputMethodManager inputMethodManager;
     private final Button keyboardButton;
     private final EditText editText;
-    private final boolean recognitionAvailable;
 
+    private boolean recognitionAvailable;
     private SpeechRecognizer speechRecognizer = null;
 
     private Bundle recognitionResults = null;
@@ -49,7 +49,6 @@ public class Input {
         this.inputMethodManager = inputMethodManager;
         this.keyboardButton = keyboardButton;
         this.editText = editText;
-        this.recognitionAvailable = SpeechRecognizer.isRecognitionAvailable(context);
 
         keyboardButton.setOnClickListener(keyboardButtonOnClickListener);
         editText.setOnFocusChangeListener(editTextOnFocusChangeListener);
@@ -57,12 +56,16 @@ public class Input {
     }
 
     public void onStart() {
+        recognitionAvailable = SpeechRecognizer.isRecognitionAvailable(context);
         if (!recognitionAvailable) {
             return;
         }
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
         speechRecognizer.setRecognitionListener(recognitionListener);
         recognizerReady = true;
+        usingKeyboard = false;
+        usingKeyboardDone = false;
+        doingInput = false;
     }
 
     public void onStop() {
@@ -149,6 +152,7 @@ public class Input {
             doingInput = true;
             if (speechRecognizer != null) {
                 editText.post(showKeyboardButton);
+                Log.d(TAG,"waiting for recognizerReady 1");
                 while (!recognizerReady) {
                     recognitionListener.wait();
                 }
@@ -161,6 +165,7 @@ public class Input {
                 if (speechRecognizer != null) {
                     editText.post(startRecognizing);
                 }
+                Log.d(TAG,"waiting for recognizerReady 2");
                 while (!recognizerReady) {
                     recognitionListener.wait();
                     if (usingKeyboard && usingKeyboardDone) {
@@ -193,6 +198,7 @@ public class Input {
         public void run() {
             Intent intent = RecognizerIntent.getVoiceDetailsIntent(context);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            Log.d(TAG,"startListening:"+Input.this);
             speechRecognizer.startListening(intent);
         }
     };

@@ -95,6 +95,11 @@ class ZCodeStory implements GlkMain {
     }
 
     @Override
+    public boolean suspendRequested() {
+        return suspendRequested;
+    }
+
+    @Override
     public boolean finished() {
         return thread == null;
     }

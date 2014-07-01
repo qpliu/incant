@@ -13,6 +13,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 
 import com.yrek.ifstd.glk.GlkByteArray;
@@ -32,7 +33,7 @@ class WindowTextBuffer extends Window {
     ArrayDeque<Update> updates = new ArrayDeque<Update>();
     private boolean lineEventRequested = false;
     private boolean charEventRequested = false;
-    private GlkByteArray lineEventBuffer = null;
+    private transient GlkByteArray lineEventBuffer = null;
     private boolean echoLineEvent = true;
     private int writeCount = 0;
 
@@ -232,11 +233,13 @@ class WindowTextBuffer extends Window {
         return new TextAppearanceSpan(activity, activity.main.getTextBufferStyle(style));
     }
 
-    static class Update {
+    static class Update implements Serializable {
+        private static final long serialVersionUID = 0L;
+
         boolean clear = false;
         boolean flowBreak = false;
         boolean mute = false;
-        Bitmap image = null;
+        transient Bitmap image = null;
         int imageAlign = 0;
         int style = GlkStream.StyleNormal;
         StringBuilder string = new StringBuilder();
@@ -258,13 +261,13 @@ class WindowTextBuffer extends Window {
 
     @Override
     int getPixelWidth(int size) {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         return size*activity.charWidth+activity.charHMargin;
     }
 
     @Override
     int getPixelHeight(int size) {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         return size*activity.charHeight+activity.charVMargin;
     }
 
@@ -288,7 +291,7 @@ class WindowTextBuffer extends Window {
 
     @Override
     public GlkWindowSize getSize() {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         // Do not waitForWindowMeasurer() because Glk.select() might not
         // have been called yet.
         if (activity.charWidth > 0 && activity.charHeight > 0 && windowWidth > 0 && windowHeight > 0) {
@@ -393,7 +396,9 @@ class WindowTextBuffer extends Window {
     }
 
     
-    private final GlkWindowStream stream = new GlkWindowStream(this) {
+    private final WindowStream stream = new WindowStream(this) {
+        private static final long serialVersionUID = 0L;
+
         @Override
         public void putChar(int ch) throws IOException {
             super.putChar(ch);

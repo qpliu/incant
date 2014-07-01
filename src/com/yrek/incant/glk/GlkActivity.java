@@ -34,6 +34,7 @@ import com.yrek.ifstd.glk.GlkEvent;
 import com.yrek.ifstd.glk.GlkFile;
 import com.yrek.ifstd.glk.GlkGestalt;
 import com.yrek.ifstd.glk.GlkIntArray;
+import com.yrek.ifstd.glk.GlkSChannel;
 import com.yrek.ifstd.glk.GlkStream;
 import com.yrek.ifstd.glk.GlkStreamMemory;
 import com.yrek.ifstd.glk.GlkStreamMemoryUnicode;
@@ -44,9 +45,11 @@ public class GlkActivity extends Activity {
     public static final String TAG = GlkActivity.class.getSimpleName();
     public static final String GLK_MAIN = "GLK_MAIN";
     private static final String SUSPEND_STATE = "SUSPEND_STATE";
+    private static final String SUSPEND_ACTIVITY_STATE = "SUSPEND_ACTIVITY_STATE";
     GlkMain main;
     private GlkDispatch glkDispatch;
     private Serializable suspendState;
+    private transient boolean suspendedDuringInit;
 
     private View progressBar;
     int progressBarCounter = 0;
@@ -55,10 +58,8 @@ public class GlkActivity extends Activity {
     int charHeight = 0;
     int charHMargin = 0;
     int charVMargin = 0;
-    Input input;
-    Speech speech;
-    Window rootWindow;
-    private GlkStream currentStream;
+    transient Input input;
+    transient Speech speech;
     private long lastTimerEvent = 0L;
     private long timerInterval = 0L;
     private boolean pendingArrangeEvent = false;
@@ -67,47 +68,85 @@ public class GlkActivity extends Activity {
     private Object ioLock = new Object();
     private boolean outputPending = false;
 
+    ActivityState activityState = new ActivityState();
+
     private LruCache<Integer,Bitmap> imageResourceCache = new LruCache<Integer,Bitmap>(5);
 
-    private HashMap<Integer,Integer> foregroundColorHint = new HashMap<Integer,Integer>();
-    private HashMap<Integer,Integer> backgroundColorHint = new HashMap<Integer,Integer>();
-    private HashSet<Integer> reverseHint = new HashSet<Integer>();
+    static class ActivityState implements Serializable {
+        Window rootWindow;
+        GlkStream currentStream;
+
+        HashMap<Integer,Integer> foregroundColorHint = new HashMap<Integer,Integer>();
+        HashMap<Integer,Integer> backgroundColorHint = new HashMap<Integer,Integer>();
+        HashSet<Integer> reverseHint = new HashSet<Integer>();
+
+        HashMap<Integer,GlkWindow> suspendWindows = null;
+        HashMap<Integer,GlkStream> suspendStreams = null;
+        HashMap<Integer,GlkFile> suspendFiles = null;
+        HashMap<Integer,GlkSChannel> suspendSChannels = null;
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG,"onCreate");
         super.onCreate(savedInstanceState);
         main = (GlkMain) getIntent().getSerializableExtra(GLK_MAIN);
 
         setContentView(main.getGlkLayout());
         progressBar = findViewById(main.getProgressBar());
         frameLayout = (FrameLayout) findViewById(main.getFrameLayout());
+        Log.d(TAG,"frameLayout="+frameLayout+",childCount="+frameLayout.getChildCount());
         input = new Input(this, (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE), (Button) findViewById(main.getKeyboardButton()), (EditText) findViewById(main.getEditText()));
         speech = new Speech(this, (Button) findViewById(main.getSkipButton()));
         findViewById(main.getOneByOneMeasurer()).addOnLayoutChangeListener(textMeasurer);
         findViewById(main.getTwoByTwoMeasurer()).addOnLayoutChangeListener(textMeasurer);
 
-        rootWindow = null;
+        activityState.rootWindow = null;
         if (savedInstanceState != null) {
             suspendState = savedInstanceState.getSerializable(SUSPEND_STATE);
-            //... restore window heirarchy, streams, files, schannels
+            activityState = (ActivityState) savedInstanceState.getSerializable(SUSPEND_ACTIVITY_STATE);
+            if (activityState.rootWindow != null) {
+                activityState.rootWindow.restoreActivity(this);
+                if (frameLayout.getChildCount() == 1) {
+                    activityState.rootWindow.restoreView(frameLayout.getChildAt(0));
+                } else {
+                    frameLayout.addView(activityState.rootWindow.restoreView(null));
+                }
+            }
         }
 
-        glkDispatch = new GlkDispatch(glk);
+        glkDispatch = new GlkDispatch(glk, activityState.suspendWindows, activityState.suspendStreams, activityState.suspendFiles, activityState.suspendSChannels);
+        activityState.suspendWindows = null;
+        activityState.suspendStreams = null;
+        activityState.suspendFiles = null;
+        activityState.suspendSChannels = null;
+
+        main.init(this, glkDispatch, suspendState);
+        suspendState = null;
+        Log.d(TAG,"speech="+speech+",input="+input+",this="+this);
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
+        Log.d(TAG,"onSaveInstanceState");
+        activityState.suspendWindows = new HashMap<Integer,GlkWindow>();
+        activityState.suspendStreams = new HashMap<Integer,GlkStream>();
+        activityState.suspendFiles = new HashMap<Integer,GlkFile>();
+        activityState.suspendSChannels = new HashMap<Integer,GlkSChannel>();
+        glkDispatch.saveToMap(activityState.suspendWindows, activityState.suspendStreams, activityState.suspendFiles, activityState.suspendSChannels);
+
         outState.putSerializable(SUSPEND_STATE, suspendState);
-        //... save window heirarchy, streams, files, schannels
+        outState.putSerializable(SUSPEND_ACTIVITY_STATE, activityState);
     }
 
     @Override
     protected void onStart() {
+        Log.d(TAG,"onStart:frameLayout="+frameLayout);
         super.onStart();
-        main.init(this, glkDispatch, suspendState);
         input.onStart();
         speech.onStart();
-        if (rootWindow != null) {
+        if (activityState.rootWindow != null) {
             pendingArrangeEvent = true;
             pendingRedrawEvent = true;
         }
@@ -115,6 +154,7 @@ public class GlkActivity extends Activity {
 
     @Override
     protected void onStop() {
+        Log.d(TAG,"onStop");
         super.onStop();
         input.onStop();
         speech.onStop();
@@ -122,24 +162,27 @@ public class GlkActivity extends Activity {
 
     @Override
     protected void onResume() {
+        Log.d(TAG,"onResume:frameLayout="+frameLayout);
         super.onResume();
         showProgressBar();
+        suspendedDuringInit = false;
         main.start(new Runnable() {
             @Override public void run() {
                 try {
                     speech.waitForInit();
+                    waitForTextMeasurer();
                 } catch (InterruptedException e) {
-                    Log.wtf(TAG,e);
+                    suspendedDuringInit = true;
                 }
-                waitForTextMeasurer();
             }
         });
     }
 
     @Override
     protected void onPause() {
+        Log.d(TAG,"onPause:main.finished()="+main.finished()+",suspendedDuringInit="+suspendedDuringInit);
         super.onPause();
-        if (!main.finished()) {
+        if (!suspendedDuringInit && !main.finished()) {
             main.requestSuspend();
             pendingArrangeEvent = true;
             suspendState = main.suspend();
@@ -174,14 +217,14 @@ public class GlkActivity extends Activity {
     }
 
     Integer getStyleForegroundColor(int winType, int style) {
-        if (!reverseHint.contains(winType + (style << 8))) {
-            Integer color = foregroundColorHint.get(winType + (style << 8));
+        if (!activityState.reverseHint.contains(winType + (style << 8))) {
+            Integer color = activityState.foregroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
             return main.getStyleForegroundColor(style);
         } else {
-            Integer color = backgroundColorHint.get(winType + (style << 8));
+            Integer color = activityState.backgroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
@@ -190,14 +233,14 @@ public class GlkActivity extends Activity {
     }
 
     Integer getStyleBackgroundColor(int winType, int style) {
-        if (!reverseHint.contains(winType + (style << 8))) {
-            Integer color = backgroundColorHint.get(winType + (style << 8));
+        if (!activityState.reverseHint.contains(winType + (style << 8))) {
+            Integer color = activityState.backgroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
             return main.getStyleBackgroundColor(style);
         } else {
-            Integer color = foregroundColorHint.get(winType + (style << 8));
+            Integer color = activityState.foregroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
@@ -211,6 +254,10 @@ public class GlkActivity extends Activity {
         @Override
         public void main(Runnable runMain) throws IOException {
             boolean exited = false;
+            Log.d(TAG,"main:suspendedDuringInit="+suspendedDuringInit);
+            if (suspendedDuringInit) {
+                return;
+            }
             try {
                 runMain.run();
             } catch (Exit e) {
@@ -316,16 +363,16 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkWindow windowGetRoot() {
-            return rootWindow;
+            return activityState.rootWindow;
         }
 
         @Override
         public GlkWindow windowOpen(GlkWindow split, int method, int size, int winType, int rock) {
             Window window = Window.open(GlkActivity.this, (Window) split, method, size, winType, rock);
-            if (window != null && rootWindow == split) {
-                rootWindow = window.parent;
-                if (rootWindow == null) {
-                    rootWindow = window;
+            if (window != null && activityState.rootWindow == split) {
+                activityState.rootWindow = window.parent;
+                if (activityState.rootWindow == null) {
+                    activityState.rootWindow = window;
                 }
             }
             return window;
@@ -335,9 +382,9 @@ public class GlkActivity extends Activity {
         @Override
         public void setWindow(GlkWindow window) {
             if (window == null) {
-                currentStream = null;
+                activityState.currentStream = null;
             } else {
-                currentStream = window.getStream();
+                activityState.currentStream = window.getStream();
             }
         }
 
@@ -364,60 +411,60 @@ public class GlkActivity extends Activity {
 
         @Override
         public void streamSetCurrent(GlkStream stream) {
-            currentStream = stream;
+            activityState.currentStream = stream;
         }
 
         @Override
         public GlkStream streamGetCurrent() {
-            return currentStream;
+            return activityState.currentStream;
         }
 
         @Override
         public void putChar(int ch) throws IOException {
-            if (currentStream != null) {
-                currentStream.putChar(ch);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putChar(ch);
             }
         }
 
         @Override
         public void putString(CharSequence string) throws IOException {
-            if (currentStream != null) {
-                currentStream.putString(string);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putString(string);
             }
         }
 
         @Override
         public void putBuffer(GlkByteArray buffer) throws IOException {
-            if (currentStream != null) {
-                currentStream.putBuffer(buffer);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putBuffer(buffer);
             }
         }
 
         @Override
         public void putCharUni(int ch) throws IOException {
-            if (currentStream != null) {
-                currentStream.putCharUni(ch);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putCharUni(ch);
             }
         }
 
         @Override
         public void putStringUni(UnicodeString string) throws IOException {
-            if (currentStream != null) {
-                currentStream.putStringUni(string);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putStringUni(string);
             }
         }
 
         @Override
         public void putBufferUni(GlkIntArray buffer) throws IOException {
-            if (currentStream != null) {
-                currentStream.putBufferUni(buffer);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.putBufferUni(buffer);
             }
         }
 
         @Override
         public void setStyle(int style) {
-            if (currentStream != null) {
-                currentStream.setStyle(style);
+            if (activityState.currentStream != null) {
+                activityState.currentStream.setStyle(style);
             }
         }
 
@@ -426,16 +473,16 @@ public class GlkActivity extends Activity {
         public void styleHintSet(int winType, int style, int hint, int value) {
             switch (hint) {
             case GlkStream.StyleHintTextColor:
-                foregroundColorHint.put(winType + (style << 8), value);
+                activityState.foregroundColorHint.put(winType + (style << 8), value);
                 break;
             case GlkStream.StyleHintBackColor:
-                backgroundColorHint.put(winType + (style << 8), value);
+                activityState.backgroundColorHint.put(winType + (style << 8), value);
                 break;
             case GlkStream.StyleHintReverseColor:
                 if (value != 0) {
-                    reverseHint.add(winType + (style << 8));
+                    activityState.reverseHint.add(winType + (style << 8));
                 } else {
-                    reverseHint.remove(winType + (style << 8));
+                    activityState.reverseHint.remove(winType + (style << 8));
                 }
                 break;
             default:
@@ -447,13 +494,13 @@ public class GlkActivity extends Activity {
         public void styleHintClear(int winType, int style, int hint) {
             switch (hint) {
             case GlkStream.StyleHintTextColor:
-                foregroundColorHint.remove(winType + (style << 8));
+                activityState.foregroundColorHint.remove(winType + (style << 8));
                 break;
             case GlkStream.StyleHintBackColor:
-                backgroundColorHint.remove(winType + (style << 8));
+                activityState.backgroundColorHint.remove(winType + (style << 8));
                 break;
             case GlkStream.StyleHintReverseColor:
-                reverseHint.remove(winType + (style << 8));
+                activityState.reverseHint.remove(winType + (style << 8));
                 break;
             default:
                 break;
@@ -517,21 +564,21 @@ public class GlkActivity extends Activity {
                     }
                 }
             }
-            if (rootWindow == null) {
+            if (activityState.rootWindow == null) {
                 throw new IllegalStateException();
             }
             if (pendingArrangeEvent) {
                 pendingArrangeEvent = false;
-                rootWindow.clearPendingArrangeEvent();
+                activityState.rootWindow.clearPendingArrangeEvent();
                 return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
             }
             if (pendingRedrawEvent) {
                 pendingRedrawEvent = false;
-                rootWindow.clearPendingRedrawEvent();
+                activityState.rootWindow.clearPendingRedrawEvent();
                 return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
             }
             try {
-                GlkEvent event = rootWindow.getEvent(0L, true);
+                GlkEvent event = activityState.rootWindow.getEvent(0L, true);
                 if (event != null) {
                     return event;
                 }
@@ -554,11 +601,11 @@ public class GlkActivity extends Activity {
             for (;;) {
                 GlkEvent event;
                 try {
-                    event = rootWindow.getEvent(0L, true);
+                    event = activityState.rootWindow.getEvent(0L, true);
                     if (event != null) {
                         return event;
                     }
-                    event = rootWindow.getEvent(timeToNextTimerEvent(), false);
+                    event = activityState.rootWindow.getEvent(timeToNextTimerEvent(), false);
                     if (event != null) {
                         return event;
                     }
@@ -577,21 +624,21 @@ public class GlkActivity extends Activity {
         public GlkEvent selectPoll() {
             if (pendingArrangeEvent) {
                 pendingArrangeEvent = false;
-                if (rootWindow != null) {
-                    rootWindow.clearPendingArrangeEvent();
+                if (activityState.rootWindow != null) {
+                    activityState.rootWindow.clearPendingArrangeEvent();
                     return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
                 }
             }
             if (pendingRedrawEvent) {
                 pendingRedrawEvent = false;
-                if (rootWindow != null) {
-                    rootWindow.clearPendingRedrawEvent();
+                if (activityState.rootWindow != null) {
+                    activityState.rootWindow.clearPendingRedrawEvent();
                     return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
                 }
             }
             GlkEvent event = null;
             try {
-                event = rootWindow.getEvent(0L, true);
+                event = activityState.rootWindow.getEvent(0L, true);
             } catch (InterruptedException e) {
                 main.requestSuspend();
                 return new GlkEvent(GlkEvent.TypeNone, null, 0, 0);
@@ -658,14 +705,15 @@ public class GlkActivity extends Activity {
     private final Runnable handlePendingOutput = new Runnable() {
         @Override
         public void run() {
-            if (rootWindow == null) {
+            Log.d(TAG,"handlePendingOutput:this="+GlkActivity.this);
+            if (activityState.rootWindow == null) {
                 frameLayout.removeAllViews();
             } else {
-                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != rootWindow.getView()) {
+                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != activityState.rootWindow.getView()) {
                     frameLayout.removeAllViews();
-                    frameLayout.addView(rootWindow.getView());
+                    frameLayout.addView(activityState.rootWindow.getView());
                 }
-                if (rootWindow.updatePendingOutput(this, false)) {
+                if (activityState.rootWindow.updatePendingOutput(this, false)) {
                     return;
                 }
             }
@@ -679,17 +727,18 @@ public class GlkActivity extends Activity {
     private final Runnable handlePendingSpeechOutput = new Runnable() {
         @Override
         public void run() {
-            if (rootWindow == null) {
+            Log.d(TAG,"handlePendingSpeechOutput:this="+GlkActivity.this);
+            if (activityState.rootWindow == null) {
                 frameLayout.removeAllViews();
             } else {
-                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != rootWindow.getView()) {
+                if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != activityState.rootWindow.getView()) {
                     frameLayout.removeAllViews();
-                    frameLayout.addView(rootWindow.getView());
+                    frameLayout.addView(activityState.rootWindow.getView());
                 }
-                if (rootWindow.updatePendingOutput(this, false)) {
+                if (activityState.rootWindow.updatePendingOutput(this, false)) {
                     return;
                 }
-                if (rootWindow.updatePendingOutput(this, true)) {
+                if (activityState.rootWindow.updatePendingOutput(this, true)) {
                     return;
                 }
             }
@@ -700,16 +749,12 @@ public class GlkActivity extends Activity {
         }
     };
 
-    void waitForTextMeasurer() {
+    void waitForTextMeasurer() throws InterruptedException {
         if (charWidth == 0) {
-            try {
-                synchronized (textMeasurer) {
-                    while (charWidth == 0) {
-                        textMeasurer.wait();
-                    }
+            synchronized (textMeasurer) {
+                while (charWidth == 0) {
+                    textMeasurer.wait();
                 }
-            } catch (InterruptedException e) {
-                Log.wtf(TAG,e);
             }
         }
     }

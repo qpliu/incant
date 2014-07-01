@@ -40,10 +40,17 @@ class WindowPair extends Window {
     }
 
     @Override
-    void initActivity(GlkActivity activity) {
-        super.initActivity(activity);
-        child1.initActivity(activity);
-        child2.initActivity(activity);
+    void restoreActivity(GlkActivity activity) {
+        this.activity = activity;
+        child1.restoreActivity(activity);
+        child2.restoreActivity(activity);
+    }
+
+    @Override
+    View restoreView(View view) {
+        this.view = view;
+        updateView = true;
+        return getView();
     }
 
     @Override

@@ -35,6 +35,9 @@ public class Speech {
 
     public void onStop() {
         textToSpeech.shutdown();
+        synchronized (utteranceProgressListener) {
+            onDone = null;
+        }
     }
 
     public void waitForInit() throws InterruptedException {
@@ -50,7 +53,7 @@ public class Speech {
     }
 
     public void speak(String string, Runnable onDone) {
-        Log.d(TAG,"speak:"+string);
+        Log.d(TAG,"speak:"+string+",onDone="+onDone+",this.onDone="+this.onDone+",this="+this);
         if (onDone == null) {
             throw new IllegalArgumentException();
         }
@@ -70,8 +73,10 @@ public class Speech {
         if (textToSpeech.speak(string, TextToSpeech.QUEUE_ADD, params) != TextToSpeech.SUCCESS) {
             synchronized (utteranceProgressListener) {
                 skipButton.post(hideSkipButton);
-                skipButton.post(onDone);
-                this.onDone = null;
+                if (this.onDone != null) {
+                    skipButton.post(this.onDone);
+                    this.onDone = null;
+                }
             }
         }
     }

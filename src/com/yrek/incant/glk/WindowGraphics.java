@@ -21,7 +21,7 @@ class WindowGraphics extends Window {
     private static final String TAG = WindowGraphics.class.getSimpleName();
     private static final Paint PAINT = new Paint();
 
-    private Bitmap graphicsBuffer = null;
+    private transient Bitmap graphicsBuffer = null;
     private boolean dirty = false;
     private boolean hasPendingArrangeEvent = false;
     private boolean hasPendingRedrawEvent = false;
@@ -67,7 +67,7 @@ class WindowGraphics extends Window {
 
     @Override
     GlkEvent getEvent(long timeout, boolean polling) throws InterruptedException {
-        Log.d(TAG,"getEvent:arrangeEvent="+hasPendingArrangeEvent+",redrawEvent="+hasPendingRedrawEvent+",size="+graphicsBuffer.getWidth()+"x"+graphicsBuffer.getHeight());
+        Log.d(TAG,"getEvent:arrangeEvent="+hasPendingArrangeEvent+",redrawEvent="+hasPendingRedrawEvent);
         if (hasPendingArrangeEvent) {
             hasPendingArrangeEvent = false;
             return new GlkEvent(GlkEvent.TypeArrange, this, 0, 0);

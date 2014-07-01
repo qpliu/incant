@@ -34,17 +34,18 @@ class GlulxStory implements GlkMain {
 
     @Override
     public void init(Context context, GlkDispatch glk, Serializable suspendState) {
+        Log.d(TAG,"glk="+glk);
         this.glk = glk;
-        suspendState = null; //... tmp
-        if (suspendState == null) {
+        if (suspendState != null) {
+            this.glulx = (Glulx) suspendState;
+            this.glulx.resume(glk);
+        } else {
             try {
-                glulx = new Glulx(story.getGlulxFile(context), glk);
+                this.glulx = new Glulx(story.getGlulxFile(context), glk);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            return;
         }
-        throw new RuntimeException("unimplemented");
     }
 
     @Override
@@ -53,7 +54,13 @@ class GlulxStory implements GlkMain {
             @Override public void run() {
                 waitForInit.run();
                 try {
+                    Log.d(TAG,"start:start:glk="+glk);
                     glk.glk.main(glulx);
+                    Log.d(TAG,"start:finish");
+                    synchronized (this) {
+                        thread = null;
+                        this.notifyAll();
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -65,6 +72,7 @@ class GlulxStory implements GlkMain {
     @Override
     public void requestSuspend() {
         try {
+            Log.d(TAG,"requestSuspend");
             glulx.suspend(false);
         } catch (InterruptedException e) {
             Log.wtf(TAG,e);
@@ -74,9 +82,20 @@ class GlulxStory implements GlkMain {
     @Override
     public Serializable suspend() {
         try {
+            Log.d(TAG,"suspend");
             glulx.suspend(false);
-            thread.interrupt();
-            glulx.suspend(true);
+            Log.d(TAG,"suspend:interrupt");
+            synchronized (this) {
+                if (thread != null) {
+                    thread.interrupt();
+                    Log.d(TAG,"suspend:wait");
+                    while (thread != null) {
+                        wait();
+                    }
+                    Log.d(TAG,"suspend:wait done");
+                }
+            }
+            Log.d(TAG,"suspend:done");
         } catch (InterruptedException e) {
             Log.wtf(TAG,e);
         }
@@ -84,8 +103,13 @@ class GlulxStory implements GlkMain {
     }
 
     @Override
+    public boolean suspendRequested() {
+        return glulx.suspending();
+    }
+
+    @Override
     public boolean finished() {
-        return !glulx.suspended();
+        return !glulx.suspended() && thread == null;
     }
 
     @Override

@@ -26,7 +26,7 @@ class WindowTextGrid extends Window {
     private static final long serialVersionUID = 0L;
     private static final String TAG = WindowTextGrid.class.getSimpleName();
 
-    private SpannableStringBuilder gridBuffer = new SpannableStringBuilder();
+    private transient SpannableStringBuilder gridBuffer = new SpannableStringBuilder();
     private int gridWidth = 0;
     private int gridHeight = 0;
     private int cursorX = 0;
@@ -123,6 +123,9 @@ class WindowTextGrid extends Window {
 
     @Override
     boolean updatePendingOutput(Runnable continueOutput, boolean doSpeech) {
+        if (gridBuffer == null) {
+            return false;
+        }
         ((TextView) getView()).setText(gridBuffer);
         return false;
     }
@@ -135,27 +138,33 @@ class WindowTextGrid extends Window {
 
     @Override
     int getPixelWidth(int size) {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         return size*activity.charWidth+activity.charHMargin;
     }
 
     @Override
     int getPixelHeight(int size) {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         return size*activity.charHeight+activity.charVMargin;
     }
 
     @Override
     void onWindowSizeChanged(int width, int height) {
-        activity.waitForTextMeasurer();
+        waitForTextMeasurer();
         int newGridWidth = width/activity.charWidth;
         int newGridHeight = height/activity.charHeight;
-        for (int i = gridHeight-1; i >= 0; i--) {
-            if (newGridWidth < gridWidth) {
-                gridBuffer.delete(i*(gridWidth+1)+newGridWidth, i*(gridWidth+1)+gridWidth);
-            } else if (newGridWidth > gridWidth) {
-                for (int j = gridWidth; j < newGridWidth; j++) {
-                    gridBuffer.insert(i*(gridWidth+1) + j, " ");
+        if (gridBuffer == null) {
+            gridBuffer = new SpannableStringBuilder();
+            gridWidth = 0;
+            gridHeight = 0;
+        } else {
+            for (int i = gridHeight-1; i >= 0; i--) {
+                if (newGridWidth < gridWidth) {
+                    gridBuffer.delete(i*(gridWidth+1)+newGridWidth, i*(gridWidth+1)+gridWidth);
+                } else if (newGridWidth > gridWidth) {
+                    for (int j = gridWidth; j < newGridWidth; j++) {
+                        gridBuffer.insert(i*(gridWidth+1) + j, " ");
+                    }
                 }
             }
         }
@@ -223,6 +232,9 @@ class WindowTextGrid extends Window {
 
     @Override
     public void clear() {
+        if (gridBuffer == null) {
+            return;
+        }
         gridBuffer.clear();
         gridBuffer.clearSpans();
         cursorX = 0;
@@ -318,6 +330,9 @@ class WindowTextGrid extends Window {
 
     
     private void putChar(char ch, boolean setSpan) {
+        if (gridBuffer == null) {
+            return;
+        }
         if (ch == '\n') {
             cursorX = 0;
             cursorY++;
@@ -337,7 +352,9 @@ class WindowTextGrid extends Window {
         }
     }
 
-    private final GlkWindowStream stream = new GlkWindowStream(this) {
+    private final WindowStream stream = new WindowStream(this) {
+        private static final long serialVersionUID = 0L;
+
         @Override
         public void putChar(int ch) throws IOException {
             super.putChar(ch);
@@ -349,6 +366,9 @@ class WindowTextGrid extends Window {
         public void putString(CharSequence string) throws IOException {
             super.putString(string);
             writeCount += string.length();
+            if (gridBuffer == null) {
+                return;
+            }
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < string.length(); i++) {
                 WindowTextGrid.this.putChar((char) (string.charAt(i) & 255), false);
@@ -366,6 +386,9 @@ class WindowTextGrid extends Window {
         public void putBuffer(GlkByteArray buffer) throws IOException {
             super.putBuffer(buffer);
             writeCount += buffer.getArrayLength();
+            if (gridBuffer == null) {
+                return;
+            }
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < buffer.getArrayLength(); i++) {
                 WindowTextGrid.this.putChar((char) (buffer.getByteElementAt(i) & 255), false);
@@ -394,6 +417,9 @@ class WindowTextGrid extends Window {
         public void putStringUni(UnicodeString string) throws IOException {
             super.putStringUni(string);
             writeCount += string.codePointCount();
+            if (gridBuffer == null) {
+                return;
+            }
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < string.codePointCount(); i++) {
                 int ch = string.codePointAt(i);
@@ -416,6 +442,9 @@ class WindowTextGrid extends Window {
         public void putBufferUni(GlkIntArray buffer) throws IOException {
             super.putBufferUni(buffer);
             writeCount += buffer.getArrayLength();
+            if (gridBuffer == null) {
+                return;
+            }
             int start = cursorY*(gridWidth+1) + cursorX;
             for (int i = 0; i < buffer.getArrayLength(); i++) {
                 int ch = buffer.getIntElementAt(i);

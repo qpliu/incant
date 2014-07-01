@@ -53,8 +53,13 @@ abstract class Window extends GlkWindow implements Serializable {
         return view;
     }
 
-    void initActivity(GlkActivity activity) {
+    void restoreActivity(GlkActivity activity) {
         this.activity = activity;
+    }
+
+    View restoreView(View view) {
+        this.view = view;
+        return getView();
     }
 
     void post(Runnable runnable) {
@@ -86,8 +91,8 @@ abstract class Window extends GlkWindow implements Serializable {
             if (oldParent != null) {
                 oldParent.replaceChild(split, newParent);
             } else {
-                assert split == activity.rootWindow;
-                activity.rootWindow = newParent;
+                assert split == activity.activityState.rootWindow;
+                activity.activityState.rootWindow = newParent;
             }
             newWindow.parent = newParent;
             split.parent = newParent;
@@ -104,6 +109,15 @@ abstract class Window extends GlkWindow implements Serializable {
         return size;
     }
 
+    void waitForTextMeasurer() {
+        try {
+            activity.waitForTextMeasurer();
+        } catch (InterruptedException e) {
+            Log.wtf(TAG,e);
+            activity.main.requestSuspend();
+        }
+    }
+
     void waitForWindowMeasurer() {
         if (windowWidth == 0) {
             try {
@@ -114,6 +128,7 @@ abstract class Window extends GlkWindow implements Serializable {
                 }
             } catch (InterruptedException e) {
                 Log.wtf(TAG,e);
+                activity.main.requestSuspend();
             }
         }
     }
@@ -130,7 +145,11 @@ abstract class Window extends GlkWindow implements Serializable {
     void onWindowSizeChanged(int width, int height) {
     }
 
-    private final View.OnLayoutChangeListener windowMeasurer = new View.OnLayoutChangeListener() {
+    private final View.OnLayoutChangeListener windowMeasurer = new WindowMeasurer();
+
+    private class WindowMeasurer implements View.OnLayoutChangeListener, Serializable {
+        private static final long serialVersionUID = 0L;
+
         @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
             setWindowSize(right - left, bottom - top);
             synchronized (windowMeasurer) {
@@ -175,12 +194,12 @@ abstract class Window extends GlkWindow implements Serializable {
         destroy();
         Window sibling = (Window) getSibling();
         if (sibling == null) {
-            assert this == activity.rootWindow;
-            activity.rootWindow = null;
+            assert this == activity.activityState.rootWindow;
+            activity.activityState.rootWindow = null;
         } else if (parent.parent == null) {
-            assert parent == activity.rootWindow;
+            assert parent == activity.activityState.rootWindow;
             parent.destroy();
-            activity.rootWindow = sibling;
+            activity.activityState.rootWindow = sibling;
         } else {
             parent.destroy();
             parent.parent.replaceChild(parent, sibling);
