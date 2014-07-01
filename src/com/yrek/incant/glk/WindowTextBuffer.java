@@ -48,6 +48,8 @@ class WindowTextBuffer extends Window {
                 Log.d(TAG,"onFling:vx="+velocityX+",vy="+velocityY);
                 if (Math.abs(3.5f*velocityY) < -velocityX) {
                     activity.input.deleteWord();
+                } else if (-Math.abs(3.5f*velocityY) > -velocityX) {
+                    activity.input.enter();
                 }
                 return false;
             }

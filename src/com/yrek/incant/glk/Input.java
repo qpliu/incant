@@ -126,6 +126,24 @@ public class Input {
         }
     }
 
+    // Must be called in UI thread.
+    public boolean enter() {
+        synchronized (recognitionListener) {
+            if (!doingInput || !usingKeyboard || usingKeyboardDone) {
+                return false;
+            }
+            inputLineResults = editText.getText().toString();
+            inputCharResults = SpeechMunger.chooseCharacterInput(inputLineResults);
+            editText.setFocusable(false);
+            editText.setVisibility(View.GONE);
+            synchronized (recognitionListener) {
+                usingKeyboardDone = true;
+                recognitionListener.notify();
+            }
+            return true;
+        }
+    }
+
     private void recognizeSpeech() throws InterruptedException {
         synchronized (recognitionListener) {
             doingInput = true;
@@ -285,11 +303,7 @@ public class Input {
         @Override
         public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
             inputLineResults = editText.getText().toString();
-            if (inputLineResults.length() > 0) {
-                inputCharResults = inputLineResults.charAt(0);
-            } else {
-                inputCharResults = '\n';
-            }
+            inputCharResults = SpeechMunger.chooseCharacterInput(inputLineResults);
             editText.setFocusable(false);
             editText.setVisibility(View.GONE);
             synchronized (recognitionListener) {

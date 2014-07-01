@@ -20,6 +20,10 @@ public class SpeechMunger {
             return "north";
         } else if ("wat".equals(input)) {
             return "wait";
+        } else if ("Digg".equals(input)) {
+            return "dig";
+        } else if (input.startsWith("Digg ")) {
+            return "dig" + input.substring(4);
         } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
             return "wear" + input.substring(5);
         } else if (input.startsWith("but ")) {
@@ -34,8 +38,13 @@ public class SpeechMunger {
 
     public static int chooseCharacterInput(List<String> options) {
         Log.d(TAG,"chooseCharacterInput:"+options);
-        String input = options.get(0);
-        if ("space".equals(input)) {
+        return chooseCharacterInput(options.get(0));
+    }
+
+    public static int chooseCharacterInput(String input) {
+        if ("".equals(input)) {
+            return '\n';
+        } else if ("space".equals(input)) {
             return ' ';
         } else if ("enter".equals(input)) {
             return '\n';
