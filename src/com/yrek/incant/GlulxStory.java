@@ -57,9 +57,9 @@ class GlulxStory implements GlkMain {
                     Log.d(TAG,"start:start:glk="+glk);
                     glk.glk.main(glulx);
                     Log.d(TAG,"start:finish");
-                    synchronized (this) {
+                    synchronized (GlulxStory.this) {
                         thread = null;
-                        this.notifyAll();
+                        GlulxStory.this.notifyAll();
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
