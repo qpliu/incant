@@ -391,11 +391,17 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkStream streamOpenFile(GlkFile file, int mode, int rock) throws IOException {
+            if (mode == GlkFile.ModeRead && !file.exists()) {
+                return null;
+            }
             return new StreamFile((FileRef) file, mode, false, rock);
         }
 
         @Override
         public GlkStream streamOpenFileUni(GlkFile file, int mode, int rock) throws IOException {
+            if (mode == GlkFile.ModeRead && !file.exists()) {
+                return null;
+            }
             return new StreamFile((FileRef) file, mode, true, rock);
         }
 
