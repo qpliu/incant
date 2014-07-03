@@ -331,7 +331,9 @@ public class GlkActivity extends Activity {
                 return 1;
             case GlkGestalt.LineTerminators:
             case GlkGestalt.LineTerminatorKey:
+                return 0;
             case GlkGestalt.DateTime:
+                return 1;
             case GlkGestalt.Sound2:
             case GlkGestalt.ResourceStream:
             default:
@@ -416,6 +418,16 @@ public class GlkActivity extends Activity {
         }
 
         @Override
+        public GlkStream streamOpenResource(int resourceId, int rock) {
+            throw new RuntimeException("unimplemented");
+        }
+
+        @Override
+        public GlkStream streamOpenResourceUni(int resourceId, int rock) {
+            throw new RuntimeException("unimplemented");
+        }
+
+        @Override
         public void streamSetCurrent(GlkStream stream) {
             activityState.currentStream = stream;
         }
@@ -471,6 +483,13 @@ public class GlkActivity extends Activity {
         public void setStyle(int style) {
             if (activityState.currentStream != null) {
                 activityState.currentStream.setStyle(style);
+            }
+        }
+
+        @Override
+        public void setHyperlink(int linkVal) {
+            if (activityState.currentStream != null) {
+                activityState.currentStream.setHyperlink(linkVal);
             }
         }
 
@@ -535,6 +554,26 @@ public class GlkActivity extends Activity {
         @Override
         public GlkFile fileCreateFromFile(int usage, GlkFile file, int rock) throws IOException {
             throw new RuntimeException("unimplemented");
+        }
+
+
+        @Override
+        public GlkSChannel sChannelCreate(int rock) throws IOException {
+            return null;
+        }
+
+        @Override
+        public GlkSChannel sChannelCreateExt(int rock, int volume) throws IOException {
+            return null;
+        }
+
+        @Override
+        public int sChannelPlayMulti(GlkSChannel[] channels, int[] resourceIds, boolean notify) {
+            return 0;
+        }
+
+        @Override
+        public void soundLoadHint(int resourceId, boolean flag) {
         }
 
 

@@ -13,6 +13,7 @@ import java.io.Serializable;
 
 import com.yrek.ifstd.glk.GlkByteArray;
 import com.yrek.ifstd.glk.GlkEvent;
+import com.yrek.ifstd.glk.GlkIntArray;
 import com.yrek.ifstd.glk.GlkStreamResult;
 import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.GlkWindowArrangement;
@@ -272,11 +273,23 @@ abstract class Window extends GlkWindow implements Serializable {
     }
 
     @Override
+    public void requestLineEventUni(GlkIntArray buffer, int initLength) {
+    }
+
+    @Override
     public void requestCharEvent() {
     }
 
     @Override
+    public void requestCharEventUni() {
+    }
+
+    @Override
     public void requestMouseEvent() {
+    }
+
+    @Override
+    public void requestHyperlinkEvent() {
     }
 
     @Override
@@ -290,6 +303,10 @@ abstract class Window extends GlkWindow implements Serializable {
 
     @Override
     public void cancelMouseEvent() {
+    }
+
+    @Override
+    public void cancelHyperlinkEvent() {
     }
 
     @Override
@@ -316,10 +333,15 @@ abstract class Window extends GlkWindow implements Serializable {
 
     @Override
     public void setBackgroundColor(int color) {
+        getView().setBackgroundColor(0xff000000 | color);
     }
 
 
     @Override
     public void setEchoLineEvent(boolean echoLineEvent) {
+    }
+
+    @Override
+    public void setTerminatorsLineEvent(int[] charcodes) {
     }
 }

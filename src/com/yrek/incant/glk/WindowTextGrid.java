@@ -468,5 +468,11 @@ class WindowTextGrid extends Window {
             super.setStyle(style);
             currentStyle = style;
         }
+
+        @Override
+        public void setHyperlink(int linkVal) {
+            super.setHyperlink(linkVal);
+            throw new RuntimeException("unimplemented");
+        }
     };
 }

@@ -454,5 +454,11 @@ class WindowTextBuffer extends Window {
                 updateQueueLast(false).style = style;
             }
         }
+
+        @Override
+        public void setHyperlink(int linkVal) {
+            super.setHyperlink(linkVal);
+            throw new RuntimeException("unimplemented");
+        }
     };
 }

@@ -100,6 +100,11 @@ class WindowGraphics extends Window {
     @Override
     void onWindowSizeChanged(int width, int height) {
         Log.d(TAG,"onWindowSizeChanged:"+width+"x"+height);
+        if (width <= 0 || height <= 0) {
+            graphicsBuffer = null;
+            hasPendingArrangeEvent = true;
+            return;
+        }
         Bitmap buffer = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         buffer.eraseColor(backgroundColor);
         graphicsBuffer = buffer;

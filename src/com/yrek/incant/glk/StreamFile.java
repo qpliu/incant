@@ -127,6 +127,10 @@ class StreamFile extends Stream {
     }
 
     @Override
+    public void setHyperlink(int linkVal) {
+    }
+
+    @Override
     public int getChar() throws IOException {
         int ch = -1;
         try {
