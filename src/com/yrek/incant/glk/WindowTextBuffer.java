@@ -2,6 +2,7 @@ package com.yrek.incant.glk;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ImageSpan;
 import android.text.style.TextAppearanceSpan;
@@ -156,6 +157,7 @@ class WindowTextBuffer extends Window {
         activity.hideProgressBar();
         final ScrollView scrollView = (ScrollView) view;
         TextView textView = (TextView) scrollView.getChildAt(0);
+        truncateText(textView.getEditableText(), getSize());
         int currentStyle = GlkStream.StyleNormal;
         SpannableStringBuilder screenOutput = new SpannableStringBuilder();
         StringBuilder speechOutput = new StringBuilder();
@@ -226,6 +228,25 @@ class WindowTextBuffer extends Window {
             activity.speech.speak(speechOutput.toString(), continueOutput);
             return true;
         }
+    }
+
+    private void truncateText(Editable text, GlkWindowSize windowSize) {
+        int size = windowSize.width*windowSize.height;
+        if (text.length() < 2*size + 1024) {
+            return;
+        }
+        int point = Math.max(0, text.length() - 2*size - 2048);
+        for (int i = text.length() - 2*size - 1024; i >= point; i--) {
+            if (text.charAt(i) == '\n') {
+                point = i;
+            }
+        }
+        for (Object obj : text.getSpans(0, point, Object.class)) {
+            if (text.getSpanEnd(obj) <= point) {
+                text.removeSpan(obj);
+            }
+        }
+        text.delete(0, point);
     }
 
     @Override
