@@ -231,6 +231,9 @@ class WindowTextBuffer extends Window {
     }
 
     private void truncateText(Editable text, GlkWindowSize windowSize) {
+        if (text == null) {
+            return;
+        }
         int size = windowSize.width*windowSize.height;
         if (text.length() < 2*size + 1024) {
             return;
