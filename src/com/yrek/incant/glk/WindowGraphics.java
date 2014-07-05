@@ -30,8 +30,8 @@ class WindowGraphics extends Window {
     private int mouseX = -1;
     private int mouseY = -1;
 
-    WindowGraphics(int rock) {
-        super(rock);
+    WindowGraphics(int rock, GlkActivity activity) {
+        super(rock, activity);
     }
 
     @Override

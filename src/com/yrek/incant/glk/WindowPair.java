@@ -24,8 +24,8 @@ class WindowPair extends Window {
     Window key;
     private transient boolean updateView;
 
-    WindowPair(int method, int size, Window child1, Window child2) {
-        super(0);
+    WindowPair(int method, int size, Window child1, Window child2, GlkActivity activity) {
+        super(0, activity);
         this.method = method;
         this.size = size;
         this.child1 = child1;

@@ -40,9 +40,11 @@ class WindowTextGrid extends Window {
     private boolean pendingResizeEvent = false;
     private boolean mouseEventRequested = false;
     private int mouseIndex = -1;
+    private Integer backgroundColor = null;
 
-    WindowTextGrid(int rock) {
-        super(rock);
+    WindowTextGrid(int rock, GlkActivity activity) {
+        super(rock, activity);
+        backgroundColor = activity.getStyleBackgroundColor(getType(), GlkStream.StyleNormal);
     }
 
     @Override
@@ -58,12 +60,16 @@ class WindowTextGrid extends Window {
                 return false;
             }
         });
-        return new TextView(context) {
+        TextView textView = new TextView(context) {
             @Override public boolean onTouchEvent(MotionEvent motionEvent) {
                 gestureDetector.onTouchEvent(motionEvent);
                 return super.onTouchEvent(motionEvent);
             }
         };
+        if (backgroundColor != null) {
+            textView.setBackgroundColor(0xff000000 | backgroundColor);
+        }
+        return textView;
     }
 
     @Override
@@ -347,7 +353,7 @@ class WindowTextGrid extends Window {
         if (index >= 0 && index < gridBuffer.length()) {
             gridBuffer.replace(index, index+1, String.valueOf(ch));
             if (setSpan) {
-                styleText(gridBuffer, index, index+1, currentStyle);
+                styleText(gridBuffer, index, index+1, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
             }
         }
     }
@@ -378,7 +384,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle);
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
             }
         }
 
@@ -398,7 +404,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle);
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
             }
         }
 
@@ -434,7 +440,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle);
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
             }
         }
 
@@ -459,7 +465,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle);
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
             }
         }
 

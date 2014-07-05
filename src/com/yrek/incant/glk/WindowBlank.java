@@ -10,8 +10,8 @@ import com.yrek.ifstd.glk.GlkWindow;
 class WindowBlank extends Window {
     private static final long serialVersionUID = 0L;
 
-    WindowBlank(int rock) {
-        super(rock);
+    WindowBlank(int rock, GlkActivity activity) {
+        super(rock, activity);
     }
 
     @Override

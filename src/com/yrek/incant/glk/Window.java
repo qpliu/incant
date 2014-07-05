@@ -28,8 +28,9 @@ abstract class Window extends GlkWindow implements Serializable {
     transient int windowHeight = 0;
     WindowPair parent;
 
-    Window(int rock) {
+    Window(int rock, GlkActivity activity) {
         super(rock);
+        this.activity = activity;
     }
 
     abstract View createView(Context context);
@@ -71,24 +72,22 @@ abstract class Window extends GlkWindow implements Serializable {
         Window newWindow = null;
         switch (winType) {
         case GlkWindow.TypeBlank:
-            newWindow = new WindowBlank(rock);
+            newWindow = new WindowBlank(rock, activity);
         case GlkWindow.TypeTextBuffer:
-            newWindow = new WindowTextBuffer(rock);
+            newWindow = new WindowTextBuffer(rock, activity);
             break;
         case GlkWindow.TypeTextGrid:
-            newWindow = new WindowTextGrid(rock);
+            newWindow = new WindowTextGrid(rock, activity);
             break;
         case GlkWindow.TypeGraphics:
-            newWindow = new WindowGraphics(rock);
+            newWindow = new WindowGraphics(rock, activity);
             break;
         default:
             return null;
         }
-        newWindow.activity = activity;
         if (split != null) {
             WindowPair oldParent = split.parent;
-            WindowPair newParent = new WindowPair(method, size, split, newWindow);
-            newParent.activity = activity;
+            WindowPair newParent = new WindowPair(method, size, split, newWindow, activity);
             if (oldParent != null) {
                 oldParent.replaceChild(split, newParent);
             } else {
@@ -169,19 +168,29 @@ abstract class Window extends GlkWindow implements Serializable {
         return null;
     }
 
-    void styleText(SpannableStringBuilder string, int start, int end, int style) {
+    void styleText(SpannableStringBuilder string, int start, int end, int style, Integer foregroundColor, Integer backgroundColor) {
         TextAppearanceSpan span = getSpanForStyle(style);
         if (span != null) {
             string.setSpan(span, start, end, 0);
         }
-        Integer color = activity.getStyleForegroundColor(getType(), style);
-        if (color != null) {
-            string.setSpan(new ForegroundColorSpan(color | 0xff000000), start, end, 0);
+        if (foregroundColor != null) {
+            string.setSpan(new ForegroundColorSpan(foregroundColor | 0xff000000), start, end, 0);
         }
-        color = activity.getStyleBackgroundColor(getType(), style);
-        if (color != null) {
-            string.setSpan(new BackgroundColorSpan(color | 0xff000000), start, end, 0);
+        if (backgroundColor != null) {
+            string.setSpan(new BackgroundColorSpan(backgroundColor | 0xff000000), start, end, 0);
         }
+    }
+
+    boolean colorHintChanged(int style, Integer foregroundColor, Integer backgroundColor) {
+        Integer fg = activity.getStyleForegroundColor(getType(), style);
+        if ((foregroundColor == null) != (fg == null) || (foregroundColor != null && fg != null && foregroundColor.intValue() != fg.intValue())) {
+            return true;
+        }
+        Integer bg = activity.getStyleBackgroundColor(getType(), style);
+        if ((backgroundColor == null) != (bg == null) || (backgroundColor != null && bg != null && backgroundColor.intValue() != bg.intValue())) {
+            return true;
+        }
+        return false;
     }
 
 
@@ -333,7 +342,6 @@ abstract class Window extends GlkWindow implements Serializable {
 
     @Override
     public void setBackgroundColor(int color) {
-        getView().setBackgroundColor(0xff000000 | color);
     }
 
 

@@ -37,9 +37,11 @@ class WindowTextBuffer extends Window {
     private transient GlkByteArray lineEventBuffer = null;
     private boolean echoLineEvent = true;
     private int writeCount = 0;
+    private Integer backgroundColor = null;
 
-    WindowTextBuffer(int rock) {
-        super(rock);
+    WindowTextBuffer(int rock, GlkActivity activity) {
+        super(rock, activity);
+        backgroundColor = activity.getStyleBackgroundColor(getType(), GlkStream.StyleNormal);
     }
 
     @Override
@@ -87,7 +89,12 @@ class WindowTextBuffer extends Window {
                 scrollPosition[0] = top;
             }
         };
-        scrollView.addView(new TextView(context));
+        TextView textView = new TextView(context);
+        scrollView.addView(textView);
+        if (backgroundColor != null) {
+            textView.setBackgroundColor(0xff000000 | backgroundColor);
+            scrollView.setBackgroundColor(0xff000000 | backgroundColor);
+        }
         return scrollView;
     }
 
@@ -192,7 +199,7 @@ class WindowTextBuffer extends Window {
                     case 0: break;
                     case 1: endParagraphState = 2; break;
                     case 2:
-                        styleText(screenOutput, start, screenOutput.length(), currentStyle);
+                        styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor);
                         if (!update.mute) {
                             speechOutput.append(update.string, 0, i);
                         }
@@ -205,7 +212,7 @@ class WindowTextBuffer extends Window {
             if (!update.mute) {
                 speechOutput.append(update.string);
             }
-            styleText(screenOutput, start, screenOutput.length(), currentStyle);
+            styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor);
             if (update.image != null) {
                 screenOutput.setSpan(new ImageSpan(activity, update.image), start, screenOutput.length(), 0);
             }
@@ -266,18 +273,29 @@ class WindowTextBuffer extends Window {
         transient Bitmap image = null;
         int imageAlign = 0;
         int style = GlkStream.StyleNormal;
+        Integer foregroundColor = null;
+        Integer backgroundColor = null;
         StringBuilder string = new StringBuilder();
     }
 
     Update updateQueueLast(boolean continueString) {
         Update latest = updates.peekLast();
         if (latest != null && (continueString || latest.string.length() == 0) && !latest.mute) {
-            return latest;
+            if (!colorHintChanged(latest.style, latest.foregroundColor, latest.backgroundColor)) {
+                return latest;
+            }
+            if (latest.string.length() == 0) {
+                latest.foregroundColor = activity.getStyleForegroundColor(getType(), latest.style);
+                latest.backgroundColor = activity.getStyleBackgroundColor(getType(), latest.style);
+                return latest;
+            }
         }
         Update newLatest = new Update();
         if (latest != null) {
             newLatest.style = latest.style;
         }
+        newLatest.foregroundColor = activity.getStyleForegroundColor(getType(), newLatest.style);
+        newLatest.backgroundColor = activity.getStyleBackgroundColor(getType(), newLatest.style);
         updates.addLast(newLatest);
         return newLatest;
     }
@@ -475,7 +493,10 @@ class WindowTextBuffer extends Window {
         public void setStyle(int style) {
             super.setStyle(style);
             if (updateQueueLast(true).style != style) {
-                updateQueueLast(false).style = style;
+                Update update = updateQueueLast(false);
+                update.style = style;
+                update.foregroundColor = activity.getStyleForegroundColor(getType(), style);
+                update.backgroundColor = activity.getStyleBackgroundColor(getType(), style);
             }
         }
 

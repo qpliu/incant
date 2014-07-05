@@ -216,15 +216,23 @@ public class GlkActivity extends Activity {
         post(hideProgressBar);
     }
 
-    Integer getStyleForegroundColor(int winType, int style) {
-        if (!activityState.reverseHint.contains(winType + (style << 8))) {
+    Integer getStyleColor(int winType, int style, boolean foreground) {
+        if (foreground) {
             Integer color = activityState.foregroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            color = activityState.foregroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
             return main.getStyleForegroundColor(style);
         } else {
             Integer color = activityState.backgroundColorHint.get(winType + (style << 8));
+            if (color != null) {
+                return color;
+            }
+            color = activityState.backgroundColorHint.get(winType + (style << 8));
             if (color != null) {
                 return color;
             }
@@ -232,19 +240,19 @@ public class GlkActivity extends Activity {
         }
     }
 
-    Integer getStyleBackgroundColor(int winType, int style) {
-        if (!activityState.reverseHint.contains(winType + (style << 8))) {
-            Integer color = activityState.backgroundColorHint.get(winType + (style << 8));
-            if (color != null) {
-                return color;
-            }
-            return main.getStyleBackgroundColor(style);
+    Integer getStyleForegroundColor(int winType, int style) {
+        if (!activityState.reverseHint.contains(winType + (style << 8)) && !activityState.reverseHint.contains(style << 8)) {
+            return getStyleColor(winType, style, true);
         } else {
-            Integer color = activityState.foregroundColorHint.get(winType + (style << 8));
-            if (color != null) {
-                return color;
-            }
-            return main.getStyleForegroundColor(style);
+            return getStyleColor(winType, style, false);
+        }
+    }
+
+    Integer getStyleBackgroundColor(int winType, int style) {
+        if (!activityState.reverseHint.contains(winType + (style << 8)) && !activityState.reverseHint.contains(style << 8)) {
+            return getStyleColor(winType, style, false);
+        } else {
+            return getStyleColor(winType, style, true);
         }
     }
 
