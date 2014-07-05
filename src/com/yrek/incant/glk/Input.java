@@ -43,6 +43,7 @@ public class Input {
     private boolean doingInput = false;
     private String inputLineResults;
     private int inputCharResults;
+    private boolean inputCanceled = false;
 
     public Input(Context context, InputMethodManager inputMethodManager, Button keyboardButton, EditText editText) {
         this.context = context;
@@ -75,22 +76,31 @@ public class Input {
         }
     }
 
-    public int getCharInput() throws InterruptedException {
+    public int getCharInput(long timeout) throws InterruptedException {
         Log.d(TAG,"start getCharInput");
         usingKeyboard = false;
         usingKeyboardDone = false;
-        recognizeSpeech();
+        recognizeSpeech(timeout);
         Log.d(TAG,"getCharInput:"+inputCharResults);
         return inputCharResults;
     }
 
-    public String getInput() throws InterruptedException {
+    public String getInput(long timeout) throws InterruptedException {
         Log.d(TAG,"start getInput");
         usingKeyboard = false;
         usingKeyboardDone = false;
-        recognizeSpeech();
+        recognizeSpeech(timeout);
         Log.d(TAG,"getInput:"+inputLineResults);
         return inputLineResults;
+    }
+
+    public void cancelInput() {
+        synchronized (recognitionListener) {
+            if (doingInput) {
+                inputCanceled = true;
+                recognitionListener.notify();
+            }
+        }
     }
 
     // Must be called in UI thread.
@@ -147,14 +157,29 @@ public class Input {
         }
     }
 
-    private void recognizeSpeech() throws InterruptedException {
+    private void recognizeSpeech(long timeout) throws InterruptedException {
+        Log.d(TAG,"recognizeSpeech:timeout="+timeout);
+        long timeoutTime = System.currentTimeMillis() + timeout;
         synchronized (recognitionListener) {
+            inputLineResults = null;
+            inputCharResults = 0;
             doingInput = true;
+            inputCanceled = false;
             if (speechRecognizer != null) {
                 editText.post(showKeyboardButton);
                 Log.d(TAG,"waiting for recognizerReady 1");
                 while (!recognizerReady) {
-                    recognitionListener.wait();
+                    if (timeout <= 0) {
+                        recognitionListener.wait();
+                    } else {
+                        long waitTime = timeoutTime - System.currentTimeMillis();
+                        if (waitTime <= 0) {
+                            editText.post(cancelInput);
+                            doingInput = false;
+                            return;
+                        }
+                        recognitionListener.wait(waitTime);
+                    }
                 }
             } else {
                 editText.post(enableKeyboard);
@@ -167,8 +192,23 @@ public class Input {
                 }
                 Log.d(TAG,"waiting for recognizerReady 2");
                 while (!recognizerReady) {
-                    recognitionListener.wait();
+                    if (timeout <= 0) {
+                        recognitionListener.wait();
+                    } else {
+                        long waitTime = timeoutTime - System.currentTimeMillis();
+                        if (waitTime <= 0) {
+                            editText.post(cancelInput);
+                            doingInput = false;
+                            return;
+                        }
+                        recognitionListener.wait(waitTime);
+                    }
                     if (usingKeyboard && usingKeyboardDone) {
+                        doingInput = false;
+                        return;
+                    }
+                    if (inputCanceled) {
+                        editText.post(cancelInput);
                         doingInput = false;
                         return;
                     }
@@ -285,6 +325,15 @@ public class Input {
                     editText.setFocusableInTouchMode(false);
                 }
             }
+        }
+    };
+
+    private final Runnable cancelInput = new Runnable() {
+        @Override public void run() {
+            keyboardButton.setVisibility(View.GONE);
+            editText.setVisibility(View.GONE);
+            editText.setFocusable(false);
+            editText.setFocusableInTouchMode(false);
         }
     };
 

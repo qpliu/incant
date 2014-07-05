@@ -40,6 +40,9 @@ class WindowTextGrid extends Window {
     private boolean pendingResizeEvent = false;
     private boolean mouseEventRequested = false;
     private int mouseIndex = -1;
+    private int linkVal = 0;
+    private boolean hyperlinkEventRequested = false;
+    private int hyperlinkEventVal = 0;
     private Integer backgroundColor = null;
 
     WindowTextGrid(int rock, GlkActivity activity) {
@@ -51,10 +54,14 @@ class WindowTextGrid extends Window {
     View createView(Context context) {
         final GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onSingleTapConfirmed(MotionEvent e) {
-                //... hyperlink events
-                if (mouseEventRequested) {
+                if (mouseEventRequested || hyperlinkEventRequested) {
                     TextView textView = (TextView) view;
                     mouseIndex = ((TextView) view).getOffsetForPosition(e.getX(), e.getY());
+                    HyperlinkSpan[] spans = gridBuffer.getSpans(mouseIndex, mouseIndex, HyperlinkSpan.class);
+                    if (spans != null && spans.length > 0) {
+                        hyperlinkEventVal = spans[0].linkVal;
+                    }
+                    activity.input.cancelInput();
                     return true;
                 }
                 return false;
@@ -74,7 +81,7 @@ class WindowTextGrid extends Window {
 
     @Override
     boolean hasPendingEvent() {
-        return lineEventRequested || charEventRequested || pendingResizeEvent || (mouseEventRequested && mouseIndex >= 0);
+        return lineEventRequested || charEventRequested || pendingResizeEvent || (mouseEventRequested && mouseIndex >= 0) || (hyperlinkEventRequested && hyperlinkEventVal != 0);
     }
 
     @Override
@@ -84,6 +91,11 @@ class WindowTextGrid extends Window {
             return new GlkEvent(GlkEvent.TypeArrange, this, 0, 0);
         } else if (polling) {
             return null;
+        } else if (hyperlinkEventRequested && hyperlinkEventVal != 0) {
+            int val = hyperlinkEventVal;
+            hyperlinkEventRequested = false;
+            hyperlinkEventVal = 0;
+            return new GlkEvent(GlkEvent.TypeHyperlink, this, val, 0);
         } else if (mouseEventRequested && mouseIndex >= 0) {
             int x = mouseIndex % (gridWidth + 1);
             int y = mouseIndex / (gridWidth + 1);
@@ -93,8 +105,10 @@ class WindowTextGrid extends Window {
         } else if (lineEventRequested) {
             activity.hideProgressBar();
             activity.speech.resetSkip();
-            //... timeout unimplemented
-            String line = activity.input.getInput();
+            String line = activity.input.getInput(timeout);
+            if (line == null) {
+                return null;
+            }
             lineEventRequested = false;
             int count = lineEventBuffer == null ? 0 : Math.min(lineEventBuffer.getArrayLength(), gridWidth - cursorX);
             for (int i = 0; i < count; i++) {
@@ -117,8 +131,7 @@ class WindowTextGrid extends Window {
         } else if (charEventRequested) {
             activity.hideProgressBar();
             activity.speech.resetSkip();
-            //... timeout unimplemented
-            int ch = activity.input.getCharInput();
+            int ch = activity.input.getCharInput(timeout);
             charEventRequested = false;
             activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
@@ -308,6 +321,14 @@ class WindowTextGrid extends Window {
     }
 
     @Override
+    public void requestHyperlinkEvent() {
+        if (!hyperlinkEventRequested) {
+            hyperlinkEventRequested = true;
+            hyperlinkEventVal = 0;
+        }
+    }
+
+    @Override
     public GlkEvent cancelLineEvent() {
         if (!lineEventRequested) {
             return new GlkEvent(GlkEvent.TypeNone, this, 0, 0);
@@ -326,6 +347,12 @@ class WindowTextGrid extends Window {
     public void cancelMouseEvent() {
         mouseEventRequested = false;
         mouseIndex = -1;
+    }
+
+    @Override
+    public void cancelHyperlinkEvent() {
+        hyperlinkEventRequested = false;
+        hyperlinkEventVal = 0;
     }
 
 
@@ -353,7 +380,7 @@ class WindowTextGrid extends Window {
         if (index >= 0 && index < gridBuffer.length()) {
             gridBuffer.replace(index, index+1, String.valueOf(ch));
             if (setSpan) {
-                styleText(gridBuffer, index, index+1, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
+                styleText(gridBuffer, index, index+1, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle), linkVal);
             }
         }
     }
@@ -384,7 +411,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle), linkVal);
             }
         }
 
@@ -404,7 +431,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle), linkVal);
             }
         }
 
@@ -440,7 +467,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle), linkVal);
             }
         }
 
@@ -465,7 +492,7 @@ class WindowTextGrid extends Window {
                 start = Math.max(0, start);
                 end = Math.min(end, gridBuffer.length());
                 cleanGridBufferSpans(start, end);
-                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle));
+                styleText(gridBuffer, start, end, currentStyle, activity.getStyleForegroundColor(getType(), currentStyle), activity.getStyleBackgroundColor(getType(), currentStyle), linkVal);
             }
         }
 
@@ -478,7 +505,7 @@ class WindowTextGrid extends Window {
         @Override
         public void setHyperlink(int linkVal) {
             super.setHyperlink(linkVal);
-            throw new RuntimeException("unimplemented");
+            WindowTextGrid.this.linkVal = linkVal;
         }
     };
 }

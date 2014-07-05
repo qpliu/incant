@@ -37,6 +37,8 @@ class WindowTextBuffer extends Window {
     private transient GlkByteArray lineEventBuffer = null;
     private boolean echoLineEvent = true;
     private int writeCount = 0;
+    private boolean hyperlinkEventRequested = false;
+    private int hyperlinkEventVal = 0;
     private Integer backgroundColor = null;
 
     WindowTextBuffer(int rock, GlkActivity activity) {
@@ -75,7 +77,22 @@ class WindowTextBuffer extends Window {
                 return false;
             }
             @Override public boolean onSingleTapConfirmed(MotionEvent e) {
-                //... hyperlink events
+                Log.d(TAG,"onSingleTapConfirmed");
+                if (hyperlinkEventRequested) {
+                    TextView textView = (TextView) ((ScrollView) view).getChildAt(0);
+                    Editable editable = textView.getEditableText();
+                    if (editable != null) {
+                        int offset = textView.getOffsetForPosition(e.getX(), e.getY() + scrollPosition[0]);
+                        HyperlinkSpan[] spans = editable.getSpans(offset, offset, HyperlinkSpan.class);
+                        Log.d(TAG,"onSingleTapConfirmed:offset="+offset+",spans="+spans);
+                        if (spans != null && spans.length > 0) {
+                            hyperlinkEventVal = spans[0].linkVal;
+                            Log.d(TAG,"onSingleTapConfirmed:offset="+offset+",spans="+spans+",hyperlinkEventVal="+hyperlinkEventVal);
+                        }
+                        activity.input.cancelInput();
+                        return true;
+                    }
+                }
                 return false;
             }
         });
@@ -100,18 +117,25 @@ class WindowTextBuffer extends Window {
 
     @Override
     boolean hasPendingEvent() {
-        return lineEventRequested || charEventRequested;
+        return lineEventRequested || charEventRequested || (hyperlinkEventRequested && hyperlinkEventVal != 0);
     }
 
     @Override
     GlkEvent getEvent(long timeout, boolean polling) throws InterruptedException {
         if (polling) {
             return null;
+        } else if (hyperlinkEventRequested && hyperlinkEventVal != 0) {
+            int val = hyperlinkEventVal;
+            hyperlinkEventRequested = false;
+            hyperlinkEventVal = 0;
+            return new GlkEvent(GlkEvent.TypeHyperlink, this, val, 0);
         } else if (lineEventRequested) {
             activity.hideProgressBar();
             activity.speech.resetSkip();
-            //... timeout unimplemented
-            String line = activity.input.getInput();
+            String line = activity.input.getInput(timeout);
+            if (line == null) {
+                return null;
+            }
             lineEventRequested = false;
             int count = lineEventBuffer == null ? 0 : Math.min(lineEventBuffer.getArrayLength(), line.length());
             for (int i = 0; i < count; i++) {
@@ -135,8 +159,10 @@ class WindowTextBuffer extends Window {
         } else if (charEventRequested) {
             activity.hideProgressBar();
             activity.speech.resetSkip();
-            //... timeout unimplemented
-            int ch = activity.input.getCharInput();
+            int ch = activity.input.getCharInput(timeout);
+            if (ch == 0) {
+                return null;
+            }
             charEventRequested = false;
             activity.showProgressBar();
             return new GlkEvent(GlkEvent.TypeCharInput, this, ch, 0);
@@ -166,6 +192,7 @@ class WindowTextBuffer extends Window {
         TextView textView = (TextView) scrollView.getChildAt(0);
         truncateText(textView.getEditableText(), getSize());
         int currentStyle = GlkStream.StyleNormal;
+        int currentLinkVal = 0;
         SpannableStringBuilder screenOutput = new SpannableStringBuilder();
         StringBuilder speechOutput = new StringBuilder();
         int endParagraphState = 0;
@@ -189,6 +216,7 @@ class WindowTextBuffer extends Window {
                 update.flowBreak = false;
             }
             currentStyle = update.style;
+            currentLinkVal = update.linkVal;
             int start = screenOutput.length();
             // Break at paragraph breaks.
             for (int i = 0; i < update.string.length(); i++) {
@@ -199,7 +227,7 @@ class WindowTextBuffer extends Window {
                     case 0: break;
                     case 1: endParagraphState = 2; break;
                     case 2:
-                        styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor);
+                        styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor, currentLinkVal);
                         if (!update.mute) {
                             speechOutput.append(update.string, 0, i);
                         }
@@ -212,7 +240,7 @@ class WindowTextBuffer extends Window {
             if (!update.mute) {
                 speechOutput.append(update.string);
             }
-            styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor);
+            styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor, currentLinkVal);
             if (update.image != null) {
                 screenOutput.setSpan(new ImageSpan(activity, update.image), start, screenOutput.length(), 0);
             }
@@ -226,8 +254,9 @@ class WindowTextBuffer extends Window {
                 }
             });
         }
-        if (currentStyle != GlkStream.StyleNormal && updates.size() == 0) {
+        if ((currentStyle != GlkStream.StyleNormal || currentLinkVal != 0) && updates.size() == 0) {
             stream.setStyle(currentStyle);
+            stream.setHyperlink(currentLinkVal);
         }
         if (speechOutput.length() == 0) {
             return false;
@@ -273,6 +302,7 @@ class WindowTextBuffer extends Window {
         transient Bitmap image = null;
         int imageAlign = 0;
         int style = GlkStream.StyleNormal;
+        int linkVal = 0;
         Integer foregroundColor = null;
         Integer backgroundColor = null;
         StringBuilder string = new StringBuilder();
@@ -293,6 +323,7 @@ class WindowTextBuffer extends Window {
         Update newLatest = new Update();
         if (latest != null) {
             newLatest.style = latest.style;
+            newLatest.linkVal = latest.linkVal;
         }
         newLatest.foregroundColor = activity.getStyleForegroundColor(getType(), newLatest.style);
         newLatest.backgroundColor = activity.getStyleBackgroundColor(getType(), newLatest.style);
@@ -384,6 +415,14 @@ class WindowTextBuffer extends Window {
     }
 
     @Override
+    public void requestHyperlinkEvent() {
+        if (!hyperlinkEventRequested) {
+            hyperlinkEventRequested = true;
+            hyperlinkEventVal = 0;
+        }
+    }
+
+    @Override
     public GlkEvent cancelLineEvent() {
         if (!lineEventRequested) {
             return new GlkEvent(GlkEvent.TypeNone, this, 0, 0);
@@ -396,6 +435,12 @@ class WindowTextBuffer extends Window {
     @Override
     public void cancelCharEvent() {
         charEventRequested = false;
+    }
+
+    @Override
+    public void cancelHyperlinkEvent() {
+        hyperlinkEventRequested = false;
+        hyperlinkEventVal = 0;
     }
 
     @Override
@@ -503,7 +548,10 @@ class WindowTextBuffer extends Window {
         @Override
         public void setHyperlink(int linkVal) {
             super.setHyperlink(linkVal);
-            throw new RuntimeException("unimplemented");
+            if (updateQueueLast(true).linkVal != linkVal) {
+                Update update = updateQueueLast(false);
+                update.linkVal = linkVal;
+            }
         }
     };
 }

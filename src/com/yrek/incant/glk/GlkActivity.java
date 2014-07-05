@@ -311,7 +311,7 @@ public class GlkActivity extends Activity {
             case GlkGestalt.MouseInput:
                 return 1;
             case GlkGestalt.Timer:
-                return 0;
+                return 1;
             case GlkGestalt.Graphics:
                 return 1;
             case GlkGestalt.DrawImage:
@@ -325,8 +325,10 @@ public class GlkActivity extends Activity {
             case GlkGestalt.Sound:
             case GlkGestalt.SoundVolume:
             case GlkGestalt.SoundNotify:
+                return 0;
             case GlkGestalt.Hyperlinks:
             case GlkGestalt.HyperlinkInput:
+                return 1;
             case GlkGestalt.SoundMusic:
                 return 0;
             case GlkGestalt.GraphicsTransparency:
@@ -600,7 +602,7 @@ public class GlkActivity extends Activity {
             if (timerInterval <= 0) {
                 return -1;
             }
-            return Math.max(0L, lastTimerEvent + timerInterval - System.currentTimeMillis());
+            return Math.max(1L, lastTimerEvent + timerInterval - System.currentTimeMillis());
         }
 
         @Override
@@ -710,6 +712,7 @@ public class GlkActivity extends Activity {
         @Override
         public void requestTimerEvents(int millisecs) {
             timerInterval = millisecs;
+            lastTimerEvent = System.currentTimeMillis();
         }
 
 

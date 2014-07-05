@@ -5,6 +5,7 @@ import android.text.SpannableStringBuilder;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.TextAppearanceSpan;
+import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.View;
 
@@ -168,7 +169,7 @@ abstract class Window extends GlkWindow implements Serializable {
         return null;
     }
 
-    void styleText(SpannableStringBuilder string, int start, int end, int style, Integer foregroundColor, Integer backgroundColor) {
+    void styleText(SpannableStringBuilder string, int start, int end, int style, Integer foregroundColor, Integer backgroundColor, int linkVal) {
         TextAppearanceSpan span = getSpanForStyle(style);
         if (span != null) {
             string.setSpan(span, start, end, 0);
@@ -178,6 +179,9 @@ abstract class Window extends GlkWindow implements Serializable {
         }
         if (backgroundColor != null) {
             string.setSpan(new BackgroundColorSpan(backgroundColor | 0xff000000), start, end, 0);
+        }
+        if (linkVal != 0) {
+            string.setSpan(new HyperlinkSpan(linkVal), start, end, 0);
         }
     }
 
@@ -351,5 +355,14 @@ abstract class Window extends GlkWindow implements Serializable {
 
     @Override
     public void setTerminatorsLineEvent(int[] charcodes) {
+    }
+
+    static class HyperlinkSpan extends UnderlineSpan {
+        final int linkVal;
+
+        HyperlinkSpan(int linkVal) {
+            super();
+            this.linkVal = linkVal;
+        }
     }
 }
