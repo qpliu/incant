@@ -222,7 +222,7 @@ public class GlkActivity extends Activity {
             if (color != null) {
                 return color;
             }
-            color = activityState.foregroundColorHint.get(winType + (style << 8));
+            color = activityState.foregroundColorHint.get(style << 8);
             if (color != null) {
                 return color;
             }
@@ -232,7 +232,7 @@ public class GlkActivity extends Activity {
             if (color != null) {
                 return color;
             }
-            color = activityState.backgroundColorHint.get(winType + (style << 8));
+            color = activityState.backgroundColorHint.get(style << 8);
             if (color != null) {
                 return color;
             }
@@ -345,7 +345,9 @@ public class GlkActivity extends Activity {
             case GlkGestalt.DateTime:
                 return 1;
             case GlkGestalt.Sound2:
+                return 0;
             case GlkGestalt.ResourceStream:
+                return 1;
             default:
                 return 0;
             }
@@ -428,13 +430,13 @@ public class GlkActivity extends Activity {
         }
 
         @Override
-        public GlkStream streamOpenResource(int resourceId, int rock) {
-            throw new RuntimeException("unimplemented");
+        public GlkStream streamOpenResource(int resourceId, int rock) throws IOException {
+            return StreamResource.open(resourceId, main.getBlorb(GlkActivity.this), false, rock);
         }
 
         @Override
-        public GlkStream streamOpenResourceUni(int resourceId, int rock) {
-            throw new RuntimeException("unimplemented");
+        public GlkStream streamOpenResourceUni(int resourceId, int rock) throws IOException {
+            return StreamResource.open(resourceId, main.getBlorb(GlkActivity.this), true, rock);
         }
 
         @Override
@@ -591,6 +593,10 @@ public class GlkActivity extends Activity {
             if (timerInterval <= 0) {
                 return null;
             }
+            if (lastTimerEvent == 0) {
+                lastTimerEvent = System.currentTimeMillis();
+                return null;
+            }
             if (System.currentTimeMillis() < lastTimerEvent + timerInterval) {
                 return null;
             }
@@ -712,7 +718,7 @@ public class GlkActivity extends Activity {
         @Override
         public void requestTimerEvents(int millisecs) {
             timerInterval = millisecs;
-            lastTimerEvent = System.currentTimeMillis();
+            lastTimerEvent = 0;
         }
 
 
