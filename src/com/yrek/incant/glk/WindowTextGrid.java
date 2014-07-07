@@ -6,6 +6,7 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.TextView;
 
@@ -67,10 +68,10 @@ class WindowTextGrid extends Window {
                 return false;
             }
         });
+        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, activity.onScaleGestureListener);
         TextView textView = new TextView(context) {
             @Override public boolean onTouchEvent(MotionEvent motionEvent) {
-                gestureDetector.onTouchEvent(motionEvent);
-                return super.onTouchEvent(motionEvent);
+                return gestureDetector.onTouchEvent(motionEvent) || scaleGestureDetector.onTouchEvent(motionEvent) || super.onTouchEvent(motionEvent);
             }
         };
         if (backgroundColor != null) {

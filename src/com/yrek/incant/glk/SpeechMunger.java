@@ -32,6 +32,8 @@ public class SpeechMunger {
             return "read" + input.substring(2);
         } else if (input.startsWith("going to ")) {
             return "go in" + input.substring(6);
+        } else if (input.startsWith("\n")) {
+            return "enter " + input.substring(1);
         }
         return input;
     }

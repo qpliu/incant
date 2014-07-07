@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.LruCache;
 import android.view.KeyEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -850,6 +851,22 @@ public class GlkActivity extends Activity {
                     Log.d(TAG,"charSize="+charWidth+"x"+charHeight+",margin="+charHMargin+"x"+charVMargin+",1x="+w1+"x"+h1+",4x="+w2+"x"+h2);
                 }
             }
+        }
+    };
+
+
+    final ScaleGestureDetector.OnScaleGestureListener onScaleGestureListener = new ScaleGestureDetector.OnScaleGestureListener() {
+        @Override public boolean onScale(ScaleGestureDetector detector) {
+            Log.d(TAG,"scale:"+detector.getScaleFactor());
+            return false;
+        }
+
+        @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
+            return true;
+        }
+
+        @Override public void onScaleEnd(ScaleGestureDetector detector) {
+            Log.d(TAG,"scaleEnd:"+detector.getScaleFactor());
         }
     };
 }

@@ -9,6 +9,7 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -49,7 +50,7 @@ class WindowTextBuffer extends Window {
     @Override
     View createView(Context context) {
         final int[] scrollPosition = new int[1];
-        final GestureDetector scrollViewGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+        final GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 Log.d(TAG,"onFling:vx="+velocityX+",vy="+velocityY);
                 if (Math.abs(3.5f*velocityY) < -velocityX) {
@@ -96,9 +97,10 @@ class WindowTextBuffer extends Window {
                 return false;
             }
         });
+        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, activity.onScaleGestureListener);
         ScrollView scrollView = new ScrollView(context) {
             @Override public boolean onTouchEvent(MotionEvent motionEvent) {
-                scrollViewGestureDetector.onTouchEvent(motionEvent);
+                boolean _ = gestureDetector.onTouchEvent(motionEvent) || scaleGestureDetector.onTouchEvent(motionEvent);
                 return super.onTouchEvent(motionEvent);
             }
             @Override protected void onScrollChanged(int left, int top, int oldLeft, int oldTop) {
