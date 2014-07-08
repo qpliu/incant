@@ -4,7 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
+import android.text.style.IconMarginSpan;
 import android.text.style.ImageSpan;
+import android.text.style.LeadingMarginSpan;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -198,6 +200,7 @@ class WindowTextBuffer extends Window {
         SpannableStringBuilder screenOutput = new SpannableStringBuilder();
         StringBuilder speechOutput = new StringBuilder();
         int endParagraphState = 0;
+        ImageLeftMarginSpan pendingSpan = null;
         loop:
         for (;;) {
             Update update = updates.peekFirst();
@@ -239,6 +242,10 @@ class WindowTextBuffer extends Window {
                     }
                 }
                 screenOutput.append(update.string.charAt(i));
+                if (pendingSpan != null) {
+                    screenOutput.setSpan(pendingSpan, start, start + 1, 0);
+                    pendingSpan = null;
+                }
             }
             if (!update.mute) {
                 speechOutput.append(update.string);
@@ -247,6 +254,16 @@ class WindowTextBuffer extends Window {
             if (update.image != null) {
                 switch (update.imageAlign) {
                 case GlkWindow.ImageAlignMarginLeft:
+                    updates.removeFirst();
+                    Update next = updates.peekFirst();
+                    if (next == null || next.flowBreak || next.string.length() == 0 || next.string.charAt(0) == '\n' || next.mute) {
+                        screenOutput.setSpan(new ImageSpan(activity, update.image, ImageSpan.ALIGN_BASELINE), start, screenOutput.length(), 0);
+                    } else {
+                        screenOutput.delete(start, screenOutput.length());
+                        pendingSpan = new ImageLeftMarginSpan(update.image);
+                    }
+                    updates.addFirst(update);
+                    break;
                 default:
                     screenOutput.setSpan(new ImageSpan(activity, update.image, ImageSpan.ALIGN_BASELINE), start, screenOutput.length(), 0);
                     break;
@@ -460,16 +477,13 @@ class WindowTextBuffer extends Window {
 
     @Override
     public boolean drawImage(int resourceId, int val1, int val2) throws IOException {
-        Log.d(TAG,"drawImage:"+resourceId+","+val1);
         Bitmap image = activity.getImageResource(resourceId);
         if (image == null) {
             return false;
         }
-        Log.d(TAG,"drawImage:"+resourceId+","+val1+",size="+image.getWidth()+"x"+image.getHeight());
         if (windowWidth > 0 && image.getWidth() > 0 && windowWidth < image.getWidth()) {
             image = Bitmap.createScaledBitmap(image, windowWidth, image.getHeight()*windowWidth/image.getWidth(), true);
         }
-        Log.d(TAG,"drawImage:"+resourceId+","+val1+",size="+image.getWidth()+"x"+image.getHeight());
         Update update = updateQueueLast(false);
         update.image = image;
         update.imageAlign = val1;
@@ -480,9 +494,11 @@ class WindowTextBuffer extends Window {
 
     @Override
     public boolean drawScaledImage(int resourceId, int val1, int val2, int width, int height) throws IOException {
-        Log.d(TAG,"drawScaledImage:"+resourceId+","+val1+","+width+"x"+height);
+        if (width <= 0 || height <= 0) {
+            return false;
+        }
         Bitmap image = activity.getImageResource(resourceId);
-        if (image == null || width <= 0 || height <= 0) {
+        if (image == null) {
             return false;
         }
         if (windowWidth > 0 && width > windowWidth) {
@@ -580,4 +596,29 @@ class WindowTextBuffer extends Window {
             }
         }
     };
+
+
+    private class ImageLeftMarginSpan extends IconMarginSpan implements LeadingMarginSpan.LeadingMarginSpan2 {
+        final int width;
+        final int height;
+
+        ImageLeftMarginSpan(Bitmap b) {
+            super(b);
+            width = b.getWidth();
+            height = b.getHeight();
+        }
+
+        @Override
+        public int getLeadingMargin(boolean first) {
+            return first ? width : 0;
+        }
+
+        @Override
+        public int getLeadingMarginLineCount() {
+            if (activity.charHeight <= 0) {
+                return 1;
+            }
+            return (height + activity.charHeight - 1) / activity.charHeight;
+        }
+    }
 }
