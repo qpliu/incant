@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<com.yrek.incant.SubactivityView
    xmlns:android="http://schemas.android.com/apk/res/android"
+   android:id="@+id/subactivity_view"
    android:layout_width="fill_parent"
    android:layout_height="fill_parent"
    >
@@ -119,4 +120,4 @@
        android:ellipsize="marquee"
        />
   </LinearLayout>
-</ScrollView>
+</com.yrek.incant.SubactivityView>

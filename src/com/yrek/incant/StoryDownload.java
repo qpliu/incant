@@ -37,6 +37,7 @@ public class StoryDownload extends Activity {
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         progressbar = findViewById(R.id.progressbar);
 
+        ((SubactivityView) findViewById(R.id.subactivity_view)).setActivity(this);
         editName.setOnFocusChangeListener(editTextOnFocusChangeListener);
         editUrl.setOnFocusChangeListener(editTextOnFocusChangeListener);
         editZipEntry.setOnFocusChangeListener(editTextOnFocusChangeListener);

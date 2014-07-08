@@ -31,6 +31,8 @@ public class StoryDetails extends Activity {
         titleStyle = new TextAppearanceSpan(this, R.style.story_details_title);
         authorStyle = new TextAppearanceSpan(this, R.style.story_details_author);
         headlineStyle = new TextAppearanceSpan(this, R.style.story_details_headline);
+
+        ((SubactivityView) findViewById(R.id.subactivity_view)).setActivity(this);
     }
 
     @Override

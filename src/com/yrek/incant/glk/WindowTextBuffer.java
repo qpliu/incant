@@ -216,6 +216,7 @@ class WindowTextBuffer extends Window {
                     break;
                 }
                 update.flowBreak = false;
+                //...
             }
             currentStyle = update.style;
             currentLinkVal = update.linkVal;
@@ -244,7 +245,12 @@ class WindowTextBuffer extends Window {
             }
             styleText(screenOutput, start, screenOutput.length(), currentStyle, update.foregroundColor, update.backgroundColor, currentLinkVal);
             if (update.image != null) {
-                screenOutput.setSpan(new ImageSpan(activity, update.image), start, screenOutput.length(), 0);
+                switch (update.imageAlign) {
+                case GlkWindow.ImageAlignMarginLeft:
+                default:
+                    screenOutput.setSpan(new ImageSpan(activity, update.image, ImageSpan.ALIGN_BASELINE), start, screenOutput.length(), 0);
+                    break;
+                }
             }
             updates.removeFirst();
         }
@@ -349,6 +355,13 @@ class WindowTextBuffer extends Window {
     @Override
     void onWindowSizeChanged(int width, int height) {
         Log.d(TAG,"screenSize="+((width-activity.charHMargin)/activity.charWidth)+"x"+((height-activity.charVMargin)/activity.charHeight));
+        if (width > 0) {
+            for (Update update : updates) {
+                if (update.image != null && update.image.getWidth() > 0 && update.image.getWidth() > width) {
+                    update.image = Bitmap.createScaledBitmap(update.image, width, update.image.getHeight()*width/update.image.getWidth(), true);
+                }
+            }
+        }
     }
 
 
@@ -447,10 +460,16 @@ class WindowTextBuffer extends Window {
 
     @Override
     public boolean drawImage(int resourceId, int val1, int val2) throws IOException {
+        Log.d(TAG,"drawImage:"+resourceId+","+val1);
         Bitmap image = activity.getImageResource(resourceId);
         if (image == null) {
             return false;
         }
+        Log.d(TAG,"drawImage:"+resourceId+","+val1+",size="+image.getWidth()+"x"+image.getHeight());
+        if (windowWidth > 0 && image.getWidth() > 0 && windowWidth < image.getWidth()) {
+            image = Bitmap.createScaledBitmap(image, windowWidth, image.getHeight()*windowWidth/image.getWidth(), true);
+        }
+        Log.d(TAG,"drawImage:"+resourceId+","+val1+",size="+image.getWidth()+"x"+image.getHeight());
         Update update = updateQueueLast(false);
         update.image = image;
         update.imageAlign = val1;
@@ -461,9 +480,14 @@ class WindowTextBuffer extends Window {
 
     @Override
     public boolean drawScaledImage(int resourceId, int val1, int val2, int width, int height) throws IOException {
+        Log.d(TAG,"drawScaledImage:"+resourceId+","+val1+","+width+"x"+height);
         Bitmap image = activity.getImageResource(resourceId);
-        if (image == null) {
+        if (image == null || width <= 0 || height <= 0) {
             return false;
+        }
+        if (windowWidth > 0 && width > windowWidth) {
+            height = height*windowWidth/width;
+            width = windowWidth;
         }
         Update update = updateQueueLast(false);
         update.image = Bitmap.createScaledBitmap(image, width, height, true);

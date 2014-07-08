@@ -99,10 +99,10 @@ class WindowPair extends Window {
             View view1 = child1.getView();
             View view2 = child2.getView();
             if (view1.getParent() != null) {
-                ((LinearLayout) view1.getParent()).removeView(view1);
+                ((ViewGroup) view1.getParent()).removeView(view1);
             }
             if (view2.getParent() != null) {
-                ((LinearLayout) view2.getParent()).removeView(view2);
+                ((ViewGroup) view2.getParent()).removeView(view2);
             }
             switch (method & GlkWindowArrangement.MethodDirMask) {
             case GlkWindowArrangement.MethodLeft:

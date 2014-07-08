@@ -11,6 +11,7 @@ import android.util.LruCache;
 import android.view.KeyEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -774,6 +775,9 @@ public class GlkActivity extends Activity {
             } else {
                 if (frameLayout.getChildCount() == 0 || frameLayout.getChildAt(0) != activityState.rootWindow.getView()) {
                     frameLayout.removeAllViews();
+                    if (activityState.rootWindow.getView().getParent() != null) {
+                        ((ViewGroup) activityState.rootWindow.getView().getParent()).removeView(activityState.rootWindow.getView());
+                    }
                     frameLayout.addView(activityState.rootWindow.getView());
                 }
                 if (activityState.rootWindow.updatePendingOutput(this, false)) {
