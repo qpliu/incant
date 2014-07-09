@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.util.Xml;
-import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -180,11 +179,20 @@ class Story implements Serializable {
     }
 
     public boolean download(Context context) throws IOException {
+        return download(context, null);
+    }
+
+    protected boolean download(Context context, InputStream inputStream) throws IOException {
         boolean downloaded = false;
         getDir(context).mkdir();
         File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         try {
-            int magic = downloadTo(context, downloadURL, tmpFile);
+            int magic;
+            if (inputStream == null) {
+                magic = downloadTo(context, downloadURL, tmpFile);
+            } else {
+                magic = downloadTo(context, inputStream, tmpFile);
+            }
             if (magic == 0x504b0304 && zipEntry != null) {
                 File tmpEntry = File.createTempFile("tmp","tmp",getDir(context));
                 try {
@@ -315,10 +323,20 @@ class Story implements Serializable {
     }
 
     protected int downloadTo(Context context, URL url, File file) throws IOException {
-        File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
         InputStream in = null;
         try {
             in = url.openStream();
+            return downloadTo(context, in, file);
+        } finally {
+            if (in != null) {
+                in.close();
+            }
+        }
+    }
+
+    protected int downloadTo(Context context, InputStream in, File file) throws IOException {
+        File tmpFile = File.createTempFile("tmp","tmp",getDir(context));
+        try {
             int magic = 0;
             FileOutputStream out = null;
             try {
@@ -344,9 +362,6 @@ class Story implements Serializable {
             tmpFile.renameTo(file);
             return magic;
         } finally {
-            if (in != null) {
-                in.close();
-            }
             if (tmpFile.exists()) {
                 tmpFile.delete();
             }
