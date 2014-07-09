@@ -16,110 +16,145 @@ import com.yrek.ifstd.glk.UnicodeString;
 
 class StreamFile extends Stream {
     private static final long serialVersionUID = 0L;
-    transient RandomAccessFile file;
+    final File file;
+    final int mode;
     final boolean unicode;
+    transient RandomAccessFile randomAccessFile;
+    private long filePointer;
     int readCount = 0;
     int writeCount = 0;
 
     StreamFile(FileRef fileRef, int mode, boolean unicode, int rock) throws IOException {
+        this(fileRef.file, mode, unicode, rock);
+    }
+
+    StreamFile(File file, int mode, boolean unicode, int rock) throws IOException {
         super(rock);
-        this.file = new RandomAccessFile(fileRef.file, mode == GlkFile.ModeRead ? "r" : "rw");
+        this.file = file;
+        this.mode = mode;
+        this.unicode = unicode;
+        this.randomAccessFile = new RandomAccessFile(file, mode == GlkFile.ModeRead ? "r" : "rw");
         switch (mode) {
         case GlkFile.ModeWrite:
-            this.file.setLength(0L);
+            this.randomAccessFile.setLength(0L);
             break;
         case GlkFile.ModeRead:
         case GlkFile.ModeReadWrite:
-            this.file.seek(0L);
+            this.randomAccessFile.seek(0L);
             break;
         case GlkFile.ModeWriteAppend:
-            this.file.seek(this.file.length());
+            this.randomAccessFile.seek(this.randomAccessFile.length());
             break;
         default:
             throw new IllegalArgumentException();
         }
-        this.unicode = unicode;
+        savePointer();
     }
     
     @Override
     public GlkStreamResult close() throws IOException {
-        file.close();
+        if (randomAccessFile != null) {
+            randomAccessFile.close();
+        }
         destroy();
         return new GlkStreamResult(readCount, writeCount);
     }
 
+    private void resume() throws IOException {
+        if (randomAccessFile == null) {
+            randomAccessFile = new RandomAccessFile(file, mode == GlkFile.ModeRead ? "r" : "rw");
+            randomAccessFile.seek(filePointer);
+        }
+    }
+
+    private void savePointer() throws IOException {
+        filePointer = randomAccessFile.getFilePointer();
+    }
+
     @Override
     public void putChar(int ch) throws IOException {
+        resume();
         writeCount++;
         if (unicode) {
-            file.writeInt(ch & 255);
+            randomAccessFile.writeInt(ch & 255);
         } else {
-            file.write(ch);
+            randomAccessFile.write(ch);
         }
+        savePointer();
     }
 
     @Override
     public void putString(CharSequence string) throws IOException {
+        resume();
         writeCount += string.length();
         if (unicode) {
             for (int i = 0; i < string.length(); i++) {
-                file.writeInt(string.charAt(i) & 255);
+                randomAccessFile.writeInt(string.charAt(i) & 255);
             }
         } else {
-            file.writeBytes(string.toString());
+            randomAccessFile.writeBytes(string.toString());
         }
+        savePointer();
     }
 
     @Override
     public void putBuffer(GlkByteArray buffer) throws IOException {
+        resume();
         writeCount += buffer.getArrayLength();
         if (unicode) {
             for (int i = 0; i < buffer.getArrayLength(); i++) {
-                file.writeInt(buffer.getByteElementAt(i) & 255);
+                randomAccessFile.writeInt(buffer.getByteElementAt(i) & 255);
             }
         } else {
             for (int i = 0; i < buffer.getArrayLength(); i++) {
-                file.write(buffer.getByteElementAt(i));
+                randomAccessFile.write(buffer.getByteElementAt(i));
             }
         }
+        savePointer();
     }
 
     @Override
     public void putCharUni(int ch) throws IOException {
+        resume();
         writeCount++;
         if (unicode) {
-            file.writeInt(ch);
+            randomAccessFile.writeInt(ch);
         } else {
-            file.write(ch);
+            randomAccessFile.write(ch);
         }
+        savePointer();
     }
 
     @Override
     public void putStringUni(UnicodeString string) throws IOException {
+        resume();
         writeCount += string.codePointCount();
         if (unicode) {
             for (int i = 0; i < string.codePointCount(); i++) {
-                file.writeInt(string.codePointAt(i));
+                randomAccessFile.writeInt(string.codePointAt(i));
             }
         } else {
             for (int i = 0; i < string.codePointCount(); i++) {
-                file.write(string.codePointAt(i));
+                randomAccessFile.write(string.codePointAt(i));
             }
         }
+        savePointer();
     }
 
     @Override
     public void putBufferUni(GlkIntArray buffer) throws IOException {
+        resume();
         writeCount += buffer.getArrayLength();
         if (unicode) {
             for (int i = 0; i < buffer.getArrayLength(); i++) {
-                file.writeInt(buffer.getIntElementAt(i));
+                randomAccessFile.writeInt(buffer.getIntElementAt(i));
             }
         } else {
             for (int i = 0; i < buffer.getArrayLength(); i++) {
-                file.write(buffer.getIntElementAt(i));
+                randomAccessFile.write(buffer.getIntElementAt(i));
             }
         }
+        savePointer();
     }
 
     @Override
@@ -132,29 +167,32 @@ class StreamFile extends Stream {
 
     @Override
     public int getChar() throws IOException {
+        resume();
         int ch = -1;
         try {
             if (unicode) {
-                ch = file.readInt() & 255;
+                ch = randomAccessFile.readInt() & 255;
             } else {
-                ch = file.readUnsignedByte();
+                ch = randomAccessFile.readUnsignedByte();
             }
             readCount++;
         } catch (EOFException e) {
         }
+        savePointer();
         return ch;
     }
 
     @Override
     public int getLine(GlkByteArray buffer) throws IOException {
+        resume();
         int index = 0;
         while (index < buffer.getArrayLength() - 1) {
             int ch;
             try {
                 if (unicode) {
-                    ch = file.readInt() & 255;
+                    ch = randomAccessFile.readInt() & 255;
                 } else {
-                    ch = file.readUnsignedByte();
+                    ch = randomAccessFile.readUnsignedByte();
                 }
             } catch (EOFException e) {
                 break;
@@ -167,19 +205,21 @@ class StreamFile extends Stream {
             }
         }
         buffer.setByteElementAt(index, 0);
+        savePointer();
         return index;
     }
 
     @Override
     public int getBuffer(GlkByteArray buffer) throws IOException {
+        resume();
         int index = 0;
         while (index < buffer.getArrayLength() - 1) {
             int ch;
             try {
                 if (unicode) {
-                    ch = file.readInt() & 255;
+                    ch = randomAccessFile.readInt() & 255;
                 } else {
-                    ch = file.readUnsignedByte();
+                    ch = randomAccessFile.readUnsignedByte();
                 }
             } catch (EOFException e) {
                 break;
@@ -189,34 +229,38 @@ class StreamFile extends Stream {
             index++;
         }
         buffer.setByteElementAt(index, 0);
+        savePointer();
         return index;
     }
 
     @Override
     public int getCharUni() throws IOException {
+        resume();
         int ch = -1;
         try {
             if (unicode) {
-                ch = file.readInt();
+                ch = randomAccessFile.readInt();
             } else {
-                ch = file.readUnsignedByte();
+                ch = randomAccessFile.readUnsignedByte();
             }
             readCount++;
         } catch (EOFException e) {
         }
+        savePointer();
         return ch;
     }
 
     @Override
     public int getLineUni(GlkIntArray buffer) throws IOException {
+        resume();
         int index = 0;
         while (index < buffer.getArrayLength() - 1) {
             int ch;
             try {
                 if (unicode) {
-                    ch = file.readInt();
+                    ch = randomAccessFile.readInt();
                 } else {
-                    ch = file.readUnsignedByte();
+                    ch = randomAccessFile.readUnsignedByte();
                 }
             } catch (EOFException e) {
                 break;
@@ -229,19 +273,21 @@ class StreamFile extends Stream {
             }
         }
         buffer.setIntElementAt(index, 0);
+        savePointer();
         return index;
     }
 
     @Override
     public int getBufferUni(GlkIntArray buffer) throws IOException {
+        resume();
         int index = 0;
         while (index < buffer.getArrayLength() - 1) {
             int ch;
             try {
                 if (unicode) {
-                    ch = file.readInt();
+                    ch = randomAccessFile.readInt();
                 } else {
-                    ch = file.readUnsignedByte();
+                    ch = randomAccessFile.readUnsignedByte();
                 }
             } catch (EOFException e) {
                 break;
@@ -251,38 +297,41 @@ class StreamFile extends Stream {
             index++;
         }
         buffer.setIntElementAt(index, 0);
+        savePointer();
         return index;
     }
 
     @Override
     public void setPosition(int position, int seekMode) throws IOException {
+        resume();
         switch (seekMode) {
         case GlkStream.SeekModeStart:
-            file.seek((long) position);
+            randomAccessFile.seek((long) position);
             break;
         case GlkStream.SeekModeCurrent:
-            file.seek(file.getFilePointer() + position);
+            randomAccessFile.seek(randomAccessFile.getFilePointer() + position);
             break;
         case GlkStream.SeekModeEnd:
-            file.seek(file.length() + position);
+            randomAccessFile.seek(randomAccessFile.length() + position);
             break;
         default:
             throw new IllegalArgumentException();
         }
+        savePointer();
     }
 
     @Override
     public int getPosition() throws IOException {
-        return (int) file.getFilePointer();
+        return (int) filePointer;
     }
 
     @Override
     public DataOutput getDataOutput() {
-        return file;
+        return randomAccessFile;
     }
 
     @Override
     public DataInput getDataInput() {
-        return file;
+        return randomAccessFile;
     }
 }

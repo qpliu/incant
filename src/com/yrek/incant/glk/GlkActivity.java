@@ -22,6 +22,7 @@ import android.widget.Space;
 import android.widget.TextView;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URLEncoder;
@@ -433,12 +434,20 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkStream streamOpenResource(int resourceId, int rock) throws IOException {
-            return StreamResource.open(resourceId, main.getBlorb(GlkActivity.this), false, rock);
+            File file = getResourceFile(resourceId);
+            if (file == null) {
+                return null;
+            }
+            return new StreamFile(file, GlkFile.ModeRead, false, rock);
         }
 
         @Override
         public GlkStream streamOpenResourceUni(int resourceId, int rock) throws IOException {
-            return StreamResource.open(resourceId, main.getBlorb(GlkActivity.this), true, rock);
+            File file = getResourceFile(resourceId);
+            if (file == null) {
+                return null;
+            }
+            return new StreamFile(file, GlkFile.ModeRead, false, rock);
         }
 
         @Override
@@ -737,33 +746,56 @@ public class GlkActivity extends Activity {
         }
     };
 
+    File getResourceFile(int resourceId) {
+        File file = new File(main.getDir(this), "glkres."+resourceId);
+        if (file.exists()) {
+            return file;
+        }
+        try {
+            Blorb blorb = main.getBlorb(this);
+            if (blorb == null) {
+                return null;
+            }
+            for (Blorb.Resource res : blorb.resources()) {
+                if (res.getNumber() == resourceId && res.getChunk() != null) {
+                    File tmpFile = File.createTempFile("tmp","tmp",main.getDir(this));
+                    FileOutputStream out = null;
+                    try {
+                        out = new FileOutputStream(tmpFile);
+                        res.getChunk().write(out);
+                        tmpFile.renameTo(file);
+                        return file;
+                    } finally {
+                        if (tmpFile.exists()) {
+                            tmpFile.delete();
+                        }
+                        if (out != null) {
+                            out.close();
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            Log.wtf(TAG,e);
+        }
+        return null;
+    }
+
     Bitmap getImageResource(int resourceId) {
         synchronized (imageResourceCache) {
             Bitmap image = imageResourceCache.get(resourceId);
             if (image != null) {
                 return image;
             }
-            try {
-                Blorb blorb = main.getBlorb(GlkActivity.this);
-                if (blorb == null) {
-                    return null;
+            File file = getResourceFile(resourceId);
+            if (file != null) {
+                image = BitmapFactory.decodeFile(file.getPath());
+                if (image != null) {
+                    imageResourceCache.put(resourceId, image);
                 }
-                for (Blorb.Resource res : blorb.resources()) {
-                    if (res.getUsage() == Blorb.Pict && res.getNumber() == resourceId) {
-                        Blorb.Chunk chunk = res.getChunk();
-                        if (chunk == null || (chunk.getId() != Blorb.PNG && chunk.getId() != Blorb.JPEG)) {
-                            return null;
-                        }
-                        image = BitmapFactory.decodeByteArray(chunk.getContents(), 0, chunk.getLength());
-                        imageResourceCache.put(resourceId, image);
-                        return image;
-                    }
-                }
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
             }
+            return image;
         }
-        return null;
     }
 
     private final Runnable handlePendingOutput = new Runnable() {
