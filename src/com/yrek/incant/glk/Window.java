@@ -7,6 +7,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.TextAppearanceSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Log;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import java.io.IOException;
@@ -365,4 +366,27 @@ abstract class Window extends GlkWindow implements Serializable {
             this.linkVal = linkVal;
         }
     }
+
+
+    final ScaleGestureDetector.OnScaleGestureListener onScaleGestureListener = new ScaleGestureDetector.OnScaleGestureListener() {
+        @Override public boolean onScale(ScaleGestureDetector detector) {
+            Log.d(TAG,"scale:"+detector.getScaleFactor());
+            if (parent != null && detector.getTimeDelta() > 500L) {
+                parent.resizeChild(Window.this, detector.getScaleFactor());
+                return true;
+            }
+            return false;
+        }
+
+        @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
+            return true;
+        }
+
+        @Override public void onScaleEnd(ScaleGestureDetector detector) {
+            Log.d(TAG,"scale:"+detector.getScaleFactor());
+            if (parent != null) {
+                parent.resizeChild(Window.this, detector.getScaleFactor());
+            }
+        }
+    };
 }

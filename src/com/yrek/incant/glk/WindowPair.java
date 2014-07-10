@@ -174,6 +174,31 @@ class WindowPair extends Window {
         return child1.updatePendingOutput(continueOutput, doSpeech) || child2.updatePendingOutput(continueOutput, doSpeech);
     }
 
+    void resizeChild(Window child, float factor) {
+        if (child == child1) {
+        } else if (child == child2) {
+            factor = 1.0f/factor;
+        } else {
+            return;
+        }
+        factor = Math.max(0.5f, Math.min(1.5f, factor));
+        switch (method & GlkWindowArrangement.MethodDivisionMask) {
+        case GlkWindowArrangement.MethodProportional:
+            size = Math.min(100, (int) (size*factor));
+            break;
+        case GlkWindowArrangement.MethodFixed:
+            if (!(child2 instanceof WindowGraphics)) {
+                return;
+            }
+            size = (int) (size*factor);
+            break;
+        default:
+            throw new AssertionError();
+        }
+        updateView = true;
+        activity.input.cancelInput();
+    }
+
     synchronized void replaceChild(Window oldChild, Window newChild) {
         if (oldChild == child1) {
             child1 = newChild;

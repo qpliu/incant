@@ -68,7 +68,7 @@ class WindowTextGrid extends Window {
                 return false;
             }
         });
-        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, activity.onScaleGestureListener);
+        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, onScaleGestureListener);
         TextView textView = new TextView(context) {
             @Override public boolean onTouchEvent(MotionEvent motionEvent) {
                 return gestureDetector.onTouchEvent(motionEvent) || scaleGestureDetector.onTouchEvent(motionEvent) || super.onTouchEvent(motionEvent);

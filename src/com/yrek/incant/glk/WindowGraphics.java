@@ -47,7 +47,7 @@ class WindowGraphics extends Window {
                 return false;
             }
         });
-        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, activity.onScaleGestureListener);
+        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, onScaleGestureListener);
         return new View(context) {
             @Override protected void onDraw(Canvas canvas) {
                 Bitmap buffer = graphicsBuffer;
