@@ -1,5 +1,5 @@
-Incant is an experimental interface to a Z-Machine interpreter for Android
-using Android's speech recognition and text-to-speech.
+Incant is an experimental interface to a Glulx interpreter and a Z-Machine
+interpreter for Android using Android's speech recognition and text-to-speech.
 
 The Z-Machine interpreter is taken from Zax: https://github.com/mattkimmel/zax
 
