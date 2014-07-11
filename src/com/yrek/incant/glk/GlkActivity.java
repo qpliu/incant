@@ -116,6 +116,11 @@ public class GlkActivity extends Activity {
                     frameLayout.addView(activityState.rootWindow.restoreView(null));
                 }
             }
+            if (activityState.suspendSChannels != null) {
+                for (GlkSChannel channel : activityState.suspendSChannels.values()) {
+                    ((SChannel) channel).restoreActivity(this);
+                }
+            }
         }
 
         glkDispatch = new GlkDispatch(glk, activityState.suspendWindows, activityState.suspendStreams, activityState.suspendFiles, activityState.suspendSChannels);
@@ -178,6 +183,9 @@ public class GlkActivity extends Activity {
                 }
             }
         });
+        for (GlkSChannel schannel : glkDispatch.sChannelList()) {
+            ((SChannel) schannel).onResume();
+        }
     }
 
     @Override
@@ -188,6 +196,9 @@ public class GlkActivity extends Activity {
             main.requestSuspend();
             pendingArrangeEvent = true;
             suspendState = main.suspend();
+        }
+        for (GlkSChannel schannel : glkDispatch.sChannelList()) {
+            ((SChannel) schannel).onResume();
         }
     }
 
