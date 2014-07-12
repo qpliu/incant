@@ -338,7 +338,7 @@ public class GlkActivity extends Activity {
             case GlkGestalt.Sound:
             case GlkGestalt.SoundVolume:
             case GlkGestalt.SoundNotify:
-                return 0;
+                return 1;
             case GlkGestalt.Hyperlinks:
             case GlkGestalt.HyperlinkInput:
                 return 1;
@@ -592,16 +592,21 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkSChannel sChannelCreate(int rock) throws IOException {
-            return null;
+            Log.d(TAG,"sChannelCreate:rock="+rock);
+            return new SChannel(rock, GlkActivity.this);
         }
 
         @Override
         public GlkSChannel sChannelCreateExt(int rock, int volume) throws IOException {
-            return null;
+            Log.d(TAG,"sChannelCreateExt:rock="+rock+",volume="+volume);
+            SChannel schannel = new SChannel(rock, GlkActivity.this);
+            schannel.setVolume(volume);
+            return schannel;
         }
 
         @Override
         public int sChannelPlayMulti(GlkSChannel[] channels, int[] resourceIds, boolean notify) {
+            Log.d(TAG,"sChannelPlayMulti");
             return 0;
         }
 
