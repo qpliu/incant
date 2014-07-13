@@ -1,5 +1,6 @@
 package com.yrek.incant.glk;
 
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.util.Log;
 
@@ -37,12 +38,13 @@ class SChannel extends GlkSChannel implements Serializable {
     @Override
     public boolean play(int resourceId) throws IOException {
         Log.d(TAG,"play:ch="+this+",resourceId="+resourceId);
-        File file = activity.getResourceFile(resourceId);
+        File file = activity.getSoundResourceFile(resourceId);
         if (file == null) {
             return false;
         }
         MediaPlayer player = new MediaPlayer();
         player.setDataSource(file.getPath());
+        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
         player.prepare();
         player.start();
         return true;
@@ -51,12 +53,13 @@ class SChannel extends GlkSChannel implements Serializable {
     @Override
     public boolean playExt(int resourceId, int repeats, boolean notify) throws IOException {
         Log.d(TAG,"playExt:ch="+this+",resourceId="+resourceId+",repeats="+repeats+",notify="+notify);
-        File file = activity.getResourceFile(resourceId);
+        File file = activity.getSoundResourceFile(resourceId);
         if (file == null) {
             return false;
         }
         MediaPlayer player = new MediaPlayer();
         player.setDataSource(file.getPath());
+        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
         player.prepare();
         player.start();
         return true;

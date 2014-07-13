@@ -368,25 +368,27 @@ abstract class Window extends GlkWindow implements Serializable {
     }
 
 
-    final ScaleGestureDetector.OnScaleGestureListener onScaleGestureListener = new ScaleGestureDetector.OnScaleGestureListener() {
-        @Override public boolean onScale(ScaleGestureDetector detector) {
-            Log.d(TAG,"scale:"+detector.getScaleFactor());
-            if (parent != null && detector.getTimeDelta() > 500L) {
-                parent.resizeChild(Window.this, detector.getScaleFactor());
+    ScaleGestureDetector.OnScaleGestureListener onScaleGestureListener() {
+        return new ScaleGestureDetector.OnScaleGestureListener() {
+            @Override public boolean onScale(ScaleGestureDetector detector) {
+                Log.d(TAG,"scale:"+detector.getScaleFactor());
+                if (parent != null && detector.getTimeDelta() > 500L) {
+                    parent.resizeChild(Window.this, detector.getScaleFactor());
+                    return true;
+                }
+                return false;
+            }
+
+            @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
                 return true;
             }
-            return false;
-        }
 
-        @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
-            return true;
-        }
-
-        @Override public void onScaleEnd(ScaleGestureDetector detector) {
-            Log.d(TAG,"scale:"+detector.getScaleFactor());
-            if (parent != null) {
-                parent.resizeChild(Window.this, detector.getScaleFactor());
+            @Override public void onScaleEnd(ScaleGestureDetector detector) {
+                Log.d(TAG,"scale:"+detector.getScaleFactor());
+                if (parent != null) {
+                    parent.resizeChild(Window.this, detector.getScaleFactor());
+                }
             }
-        }
-    };
+        };
+    }
 }

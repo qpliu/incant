@@ -99,7 +99,7 @@ class WindowTextBuffer extends Window {
                 return false;
             }
         });
-        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, onScaleGestureListener);
+        final ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(activity, onScaleGestureListener());
         ScrollView scrollView = new ScrollView(context) {
             @Override public boolean onTouchEvent(MotionEvent motionEvent) {
                 boolean _ = gestureDetector.onTouchEvent(motionEvent) || scaleGestureDetector.onTouchEvent(motionEvent);

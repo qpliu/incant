@@ -343,7 +343,8 @@ public class GlkActivity extends Activity {
             case GlkGestalt.HyperlinkInput:
                 return 1;
             case GlkGestalt.SoundMusic:
-                return 0;
+                // Six.gblorb won't play sounds if this is false
+                return 1;
             case GlkGestalt.GraphicsTransparency:
                 return 1;
             case GlkGestalt.Unicode:
@@ -766,8 +767,9 @@ public class GlkActivity extends Activity {
         if (file.exists()) {
             return file;
         }
+        Blorb blorb = null;
         try {
-            Blorb blorb = main.getBlorb(this);
+            blorb = main.getBlorb(this);
             if (blorb == null) {
                 return null;
             }
@@ -792,6 +794,92 @@ public class GlkActivity extends Activity {
             }
         } catch (IOException e) {
             Log.wtf(TAG,e);
+        } finally {
+            if (blorb != null) {
+                try {
+                    blorb.close();
+                } catch (IOException e) {
+                    Log.wtf(TAG,e);
+                }
+            }
+        }
+        return null;
+    }
+
+    File getSoundResourceFile(int resourceId) {
+        File file = new File(main.getDir(this), "glkres.snd."+resourceId);
+        if (file.exists()) {
+            return file;
+        }
+        Blorb blorb = null;
+        try {
+            blorb = main.getBlorb(this);
+            if (blorb == null) {
+                return null;
+            }
+            for (Blorb.Resource res : blorb.resources()) {
+                Log.d(TAG,"res="+res.getNumber());
+                if (res.getNumber() == resourceId && res.getUsage() == Blorb.Snd && res.getChunk() != null) {
+                    Log.d(TAG,String.format("chunkid=%x",res.getChunk().getId()));
+                    File tmpFile = File.createTempFile("tmp","tmp",main.getDir(this));
+                    File tmpFile2 = File.createTempFile("tmp","tmp",main.getDir(this));
+                    FileOutputStream out = null;
+                    FileOutputStream out2 = null;
+                    try {
+                        out = new FileOutputStream(tmpFile);
+                        res.getChunk().write(out);
+                        out2 = new FileOutputStream(tmpFile2);
+                        switch (res.getChunk().getId()) {
+                        case Blorb.OGGV: // OGGV
+                            tmpFile.renameTo(file);
+                            return file;
+                        case Blorb.FORM: // AIFF
+                            if (AudioConversion.aiffToWav(tmpFile, out2)) {
+                                tmpFile2.renameTo(file);
+                                return file;
+                            }
+                            break;
+                        case Blorb.MOD: // MOD
+                            if (AudioConversion.modToWav(tmpFile, out2)) {
+                                tmpFile2.renameTo(file);
+                                return file;
+                            }
+                            break;
+                        case Blorb.SONG: // SONG
+                            if (AudioConversion.songToWav(tmpFile, out2)) {
+                                tmpFile2.renameTo(file);
+                                return file;
+                            }
+                            break;
+                        default:
+                        }
+                        return null;
+                    } finally {
+                        if (tmpFile.exists()) {
+                            tmpFile.delete();
+                        }
+                        if (tmpFile2.exists()) {
+                            tmpFile2.delete();
+                        }
+                        if (out != null) {
+                            out.close();
+                        }
+                        if (out2 != null) {
+                            out2.close();
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            Log.wtf(TAG,e);
+        } finally {
+            if (blorb != null) {
+                try {
+                    blorb.close();
+                } catch (IOException e) {
+                    Log.wtf(TAG,e);
+                }
+            }
         }
         return null;
     }
