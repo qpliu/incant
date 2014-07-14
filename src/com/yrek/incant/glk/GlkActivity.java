@@ -198,7 +198,7 @@ public class GlkActivity extends Activity {
             suspendState = main.suspend();
         }
         for (GlkSChannel schannel : glkDispatch.sChannelList()) {
-            ((SChannel) schannel).onResume();
+            ((SChannel) schannel).onPause();
         }
     }
 
@@ -403,7 +403,7 @@ public class GlkActivity extends Activity {
                     activityState.rootWindow = window;
                 }
             }
-            return window;
+            return glkDispatch.add(window);
         }
 
 
@@ -422,7 +422,7 @@ public class GlkActivity extends Activity {
             if (mode == GlkFile.ModeRead && !file.exists()) {
                 return null;
             }
-            return new StreamFile((FileRef) file, mode, false, rock);
+            return glkDispatch.add(new StreamFile((FileRef) file, mode, false, rock));
         }
 
         @Override
@@ -430,17 +430,17 @@ public class GlkActivity extends Activity {
             if (mode == GlkFile.ModeRead && !file.exists()) {
                 return null;
             }
-            return new StreamFile((FileRef) file, mode, true, rock);
+            return glkDispatch.add(new StreamFile((FileRef) file, mode, true, rock));
         }
 
         @Override
         public GlkStream streamOpenMemory(GlkByteArray memory, int mode, int rock) {
-            return new GlkStreamMemory(memory, rock);
+            return glkDispatch.add(new GlkStreamMemory(memory, rock));
         }
 
         @Override
         public GlkStream streamOpenMemoryUni(GlkIntArray memory, int mode, int rock) {
-            return new GlkStreamMemoryUnicode(memory, rock);
+            return glkDispatch.add(new GlkStreamMemoryUnicode(memory, rock));
         }
 
         @Override
@@ -449,7 +449,7 @@ public class GlkActivity extends Activity {
             if (file == null) {
                 return null;
             }
-            return new StreamFile(file, GlkFile.ModeRead, false, rock);
+            return glkDispatch.add(new StreamFile(file, GlkFile.ModeRead, false, rock));
         }
 
         @Override
@@ -458,7 +458,7 @@ public class GlkActivity extends Activity {
             if (file == null) {
                 return null;
             }
-            return new StreamFile(file, GlkFile.ModeRead, false, rock);
+            return glkDispatch.add(new StreamFile(file, GlkFile.ModeRead, false, rock));
         }
 
         @Override
@@ -569,18 +569,18 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkFile fileCreateTemp(int usage, int rock) throws IOException {
-            return new FileRef(File.createTempFile("glk.",".tmp"), usage, GlkFile.ModeReadWrite, rock);
+            return glkDispatch.add(new FileRef(File.createTempFile("glk.",".tmp"), usage, GlkFile.ModeReadWrite, rock));
         }
 
         @Override
         public GlkFile fileCreateByName(int usage, CharSequence name, int rock) throws IOException {
-            return new FileRef(new File(main.getDir(GlkActivity.this), URLEncoder.encode("glk."+name, "UTF-8")), usage, GlkFile.ModeReadWrite, rock);
+            return glkDispatch.add(new FileRef(new File(main.getDir(GlkActivity.this), URLEncoder.encode("glk."+name, "UTF-8")), usage, GlkFile.ModeReadWrite, rock));
         }
 
         @Override
         public GlkFile fileCreateByPrompt(int usage, int mode, int rock) throws IOException {
             if (usage == GlkFile.UsageSavedGame) {
-                return new FileRef(main.getSaveFile(GlkActivity.this), usage, mode, rock);
+                return glkDispatch.add(new FileRef(main.getSaveFile(GlkActivity.this), usage, mode, rock));
             }
             throw new RuntimeException("unimplemented");
         }
@@ -594,7 +594,7 @@ public class GlkActivity extends Activity {
         @Override
         public GlkSChannel sChannelCreate(int rock) throws IOException {
             Log.d(TAG,"sChannelCreate:rock="+rock);
-            return new SChannel(rock, GlkActivity.this);
+            return glkDispatch.add(new SChannel(rock, GlkActivity.this));
         }
 
         @Override
@@ -602,11 +602,11 @@ public class GlkActivity extends Activity {
             Log.d(TAG,"sChannelCreateExt:rock="+rock+",volume="+volume);
             SChannel schannel = new SChannel(rock, GlkActivity.this);
             schannel.setVolume(volume);
-            return schannel;
+            return glkDispatch.add(schannel);
         }
 
         @Override
-        public int sChannelPlayMulti(GlkSChannel[] channels, int[] resourceIds, boolean notify) {
+        public int sChannelPlayMulti(GlkSChannel[] channels, int[] resourceIds, int notify) {
             Log.d(TAG,"sChannelPlayMulti");
             return 0;
         }
@@ -665,6 +665,12 @@ public class GlkActivity extends Activity {
                 activityState.rootWindow.clearPendingRedrawEvent();
                 return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
             }
+            for (GlkSChannel schannel : glkDispatch.sChannelList()) {
+                GlkEvent event = ((SChannel) schannel).getEvent();
+                if (event != null) {
+                    return event;
+                }
+            }
             try {
                 GlkEvent event = activityState.rootWindow.getEvent(0L, true);
                 if (event != null) {
@@ -722,6 +728,12 @@ public class GlkActivity extends Activity {
                 if (activityState.rootWindow != null) {
                     activityState.rootWindow.clearPendingRedrawEvent();
                     return new GlkEvent(GlkEvent.TypeRedraw, null, 0, 0);
+                }
+            }
+            for (GlkSChannel schannel : glkDispatch.sChannelList()) {
+                GlkEvent event = ((SChannel) schannel).getEvent();
+                if (event != null) {
+                    return event;
                 }
             }
             GlkEvent event = null;
