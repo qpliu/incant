@@ -17,7 +17,7 @@ class SChannel extends GlkSChannel implements Serializable {
     private static final long serialVersionUID = 0L;
     transient GlkActivity activity;
     transient MediaPlayer player;
-    private float volume = 0.5f;
+    private float volume = 0.25f;
     private GlkEvent soundEvent = null;
     private GlkEvent volumeEvent = null;
 
@@ -155,7 +155,7 @@ class SChannel extends GlkSChannel implements Serializable {
     @Override
     public void setVolume(int volume) throws IOException {
         Log.d(TAG,"setVolume:ch="+this+",volume="+volume);
-        this.volume = Math.min((float) volume / 0x10000f, 1.0f);
+        this.volume = translateVolume(volume);
         if (player != null) {
             player.setVolume(this.volume, this.volume);
         }
@@ -164,12 +164,16 @@ class SChannel extends GlkSChannel implements Serializable {
     @Override
     public void setVolumeExt(int volume, int duration, int notify) throws IOException {
         Log.d(TAG,"setVolumeExt:ch="+this+",volume="+volume+",duration="+duration+",notify="+notify);
-        this.volume = Math.min((float) volume / 0x10000f, 1.0f);
+        this.volume = translateVolume(volume);
         if (player != null) {
             player.setVolume(this.volume, this.volume);
         }
         if (notify != 0) {
             volumeEvent = new GlkEvent(GlkEvent.TypeVolumeNotify, null, 0, notify);
         }
+    }
+
+    private float translateVolume(int volume) {
+        return Math.max(0.0f,Math.min((float) volume / 262144.0f, 0.8f));
     }
 }
