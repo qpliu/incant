@@ -27,6 +27,7 @@
     <item>DATA/ZORK1.DAT</item>
     <item>http://www.infocom-if.org/games/zork1/zork1front_th.jpg</item>
 
+    <!--
     <item>Zork II</item>
     <item>Dave Lebling and Marc Blank</item>
     <item>The Wizard of Frobozz</item>
@@ -42,6 +43,7 @@
     <item>http://www.infocom-if.org/downloads/zork3.zip</item>
     <item>DATA/ZORK3.DAT</item>
     <item>http://www.infocom-if.org/games/zork3/zork3front_th.jpg</item>
+    -->
 
     <item>Bronze</item>
     <item>Emily Short</item>
@@ -67,6 +69,7 @@
     <item/>
     <item/>
 
+    <!--
     <item>Art of Fugue</item>
     <item>Victor Gijsbers, Jimmy Maher, Dorte Lassen and Johan</item>
     <item>Interactive studies in counterpoint</item>
@@ -74,8 +77,9 @@
     <item>http://mirror.ifarchive.org/if-archive/games/glulx/ArtOfFugue.gblorb</item>
     <item/>
     <item/>
+    -->
 
-<!-- -->
+    <!--
     <item>Glulxercise</item>
     <item>Andrew Plotkin</item>
     <item>A Glulx interpreter unit test</item>
@@ -91,7 +95,7 @@
     <item>http://www.eblong.com/zarf/glulx/sensory.blb</item>
     <item/>
     <item/>
-<!-- -->
+    -->
   </string-array>
 
   <string name="ifarchive_scrape_url">http://mirror.ifarchive.org/indexes/date_1.html</string>
