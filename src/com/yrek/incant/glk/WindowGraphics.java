@@ -42,6 +42,7 @@ class WindowGraphics extends Window {
                 if (mouseEventRequested) {
                     mouseX = (int) e.getX();
                     mouseY = (int) e.getY();
+                    activity.input.cancelInput();
                     return true;
                 }
                 return false;

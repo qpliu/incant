@@ -44,6 +44,7 @@ public class Input {
     private String inputLineResults;
     private int inputCharResults;
     private boolean inputCanceled = false;
+    private boolean waitingForEvent = false;
 
     public Input(Context context, InputMethodManager inputMethodManager, Button keyboardButton, EditText editText) {
         this.context = context;
@@ -67,6 +68,7 @@ public class Input {
         usingKeyboard = false;
         usingKeyboardDone = false;
         doingInput = false;
+        waitingForEvent = false;
     }
 
     public void onStop() {
@@ -94,9 +96,21 @@ public class Input {
         return inputLineResults;
     }
 
+    public void waitForEvent(long timeout) throws InterruptedException {
+        synchronized (recognitionListener) {
+            waitingForEvent = true;
+            if (timeout > 0) {
+                recognitionListener.wait(timeout);
+            } else {
+                recognitionListener.wait();
+            }
+            waitingForEvent = false;
+        }
+    }
+
     public void cancelInput() {
         synchronized (recognitionListener) {
-            if (doingInput) {
+            if (doingInput || waitingForEvent) {
                 inputCanceled = true;
                 recognitionListener.notify();
             }

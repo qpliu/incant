@@ -703,6 +703,12 @@ public class GlkActivity extends Activity {
                     if (event != null) {
                         return event;
                     }
+                    long timeToNextTimerEvent = timeToNextTimerEvent();
+                    if (timeToNextTimerEvent > 1 || timeToNextTimerEvent < 0) {
+                        hideProgressBar();
+                        input.waitForEvent(timeToNextTimerEvent);
+                        showProgressBar();
+                    }
                 } catch (InterruptedException e) {
                     main.requestSuspend();
                     return new GlkEvent(GlkEvent.TypeArrange, null, 0, 0);
