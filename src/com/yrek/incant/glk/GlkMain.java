@@ -11,7 +11,7 @@ import com.yrek.ifstd.glk.GlkDispatch;
 public interface GlkMain extends Serializable {
     public String name();
     public void init(Context context, GlkDispatch glk, Serializable suspendState);
-    public void start(Runnable waitForInit);
+    public void start(Runnable waitForInit, Runnable onFinished);
     public void requestSuspend();
     public Serializable suspend();
     public boolean suspendRequested();

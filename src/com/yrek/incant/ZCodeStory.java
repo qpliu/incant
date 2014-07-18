@@ -62,7 +62,7 @@ class ZCodeStory implements GlkMain {
     }
 
     @Override
-    public void start(final Runnable waitForInit) {
+    public void start(final Runnable waitForInit, final Runnable onFinished) {
         thread = new Thread("glk") {
             @Override public void run() {
                 try {
@@ -74,6 +74,7 @@ class ZCodeStory implements GlkMain {
                 } catch (ZQuitException e) {
                 }
                 thread = null;
+                onFinished.run();
             }
         };
         thread.start();

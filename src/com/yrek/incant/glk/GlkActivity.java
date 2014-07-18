@@ -182,6 +182,14 @@ public class GlkActivity extends Activity {
                     suspendedDuringInit = true;
                 }
             }
+        }, new Runnable() {
+            @Override public void run() {
+                post(new Runnable() {
+                    @Override public void run() {
+                        finish();
+                    }
+                });
+            }
         });
         for (GlkSChannel schannel : glkDispatch.sChannelList()) {
             ((SChannel) schannel).onResume();
@@ -284,6 +292,7 @@ public class GlkActivity extends Activity {
             } catch (Exit e) {
                 exited = true;
             }
+            Log.d(TAG,"main:exited="+exited+",main.finished="+main.finished());
             if (exited || main.finished()) {
                 post(new Runnable() {
                     @Override public void run() {
