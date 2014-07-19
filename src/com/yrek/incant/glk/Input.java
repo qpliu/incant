@@ -232,11 +232,49 @@ public class Input {
                     inputCharResults = SpeechMunger.chooseCharacterInput(recognitionResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
                     if (usingKeyboard) {
                         final String text = inputLineResults;
-                        editText.post(new Runnable() {
-                            @Override public void run() {
-                                editText.getEditableText().append(text);
+                        if ("backspace".equals(text)) {
+                            editText.post(new Runnable() {
+                                @Override public void run() {
+                                    Editable editable = editText.getEditableText();
+                                    if (editable.length() == 0) {
+                                        editable.append(text);
+                                    } else {
+                                        editable.delete(editable.length()-1, editable.length());
+                                    }
+                                }
+                            });
+                        } else if ("delete word".equals(text)) {
+                            editText.post(new Runnable() {
+                                @Override public void run() {
+                                    if (!deleteWord()) {
+                                        editText.getEditableText().append(text);
+                                    }
+                                }
+                            });
+                        } else if ("enter ".equals(text)) {
+                            inputLineResults = editText.getText().toString();
+                            inputCharResults = SpeechMunger.chooseCharacterInput(inputLineResults);
+                            if (inputLineResults.length () > 0) {
+                                doingInput = false;
+                                editText.post(cancelInput);
+                                return;
                             }
-                        });
+                            editText.post(new Runnable() {
+                                @Override public void run() {
+                                    editText.getEditableText().append(text);
+                                }
+                            });
+                        } else {
+                            editText.post(new Runnable() {
+                                @Override public void run() {
+                                    editText.getEditableText().append(text);
+                                }
+                            });
+                        }
+                    } else if ("open keyboard".equals(inputLineResults)) {
+                        usingKeyboard = true;
+                        usingKeyboardDone = false;
+                        editText.post(enableKeyboard);
                     } else {
                         doingInput = false;
                         editText.post(hideKeyboardButton);
