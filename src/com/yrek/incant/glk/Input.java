@@ -188,7 +188,7 @@ public class Input {
                     } else {
                         long waitTime = timeoutTime - System.currentTimeMillis();
                         if (waitTime <= 0) {
-                            editText.post(cancelInput);
+                            editText.post(endInput);
                             doingInput = false;
                             return;
                         }
@@ -211,7 +211,7 @@ public class Input {
                     } else {
                         long waitTime = timeoutTime - System.currentTimeMillis();
                         if (waitTime <= 0) {
-                            editText.post(cancelInput);
+                            editText.post(endInput);
                             doingInput = false;
                             return;
                         }
@@ -222,7 +222,7 @@ public class Input {
                         return;
                     }
                     if (inputCanceled) {
-                        editText.post(cancelInput);
+                        editText.post(endInput);
                         doingInput = false;
                         return;
                     }
@@ -243,6 +243,17 @@ public class Input {
                                     }
                                 }
                             });
+                        } else if ("space".equals(text)) {
+                            editText.post(new Runnable() {
+                                @Override public void run() {
+                                    Editable editable = editText.getEditableText();
+                                    if (editable.length() == 0 || editable.charAt(editable.length()-1) == ' ') {
+                                        editable.append(text);
+                                    } else {
+                                        editable.append(' ');
+                                    }
+                                }
+                            });
                         } else if ("delete word".equals(text)) {
                             editText.post(new Runnable() {
                                 @Override public void run() {
@@ -256,7 +267,7 @@ public class Input {
                             inputCharResults = SpeechMunger.chooseCharacterInput(inputLineResults);
                             if (inputLineResults.length () > 0) {
                                 doingInput = false;
-                                editText.post(cancelInput);
+                                editText.post(endInput);
                                 return;
                             }
                             editText.post(new Runnable() {
@@ -380,7 +391,7 @@ public class Input {
         }
     };
 
-    private final Runnable cancelInput = new Runnable() {
+    private final Runnable endInput = new Runnable() {
         @Override public void run() {
             keyboardButton.setVisibility(View.GONE);
             editText.setVisibility(View.GONE);
