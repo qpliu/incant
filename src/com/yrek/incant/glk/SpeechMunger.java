@@ -101,4 +101,16 @@ public class SpeechMunger {
         }
         return input.charAt(0);
     }
+
+    public static StringBuilder fixOutput(StringBuilder output) {
+        for (int i = 0; i < output.length(); i++) {
+            switch (output.charAt(i)) {
+            case '<': case '>': case '*':
+                output.setCharAt(i, ' ');
+                break;
+            default:
+            }
+        }
+        return output;
+    }
 }

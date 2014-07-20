@@ -286,7 +286,7 @@ class WindowTextBuffer extends Window {
         if (speechOutput.length() == 0) {
             return false;
         } else {
-            activity.speech.speak(speechOutput.toString(), continueOutput);
+            activity.speech.speak(SpeechMunger.fixOutput(speechOutput).toString(), continueOutput);
             return true;
         }
     }
