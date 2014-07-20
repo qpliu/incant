@@ -25,7 +25,7 @@ public class SubactivityView extends ScrollView {
     public void setActivity(final Activity activity) {
         gestureDetector = new GestureDetector(activity, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (activity != null && -Math.abs(3.5f*velocityY) > -velocityX) {
+                if (activity != null && Math.abs(3.5f*velocityY) < Math.abs(velocityX)) {
                     activity.finish();
                 }
                 return false;
