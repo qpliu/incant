@@ -10,31 +10,33 @@ public class SpeechMunger {
     private static final String TAG = SpeechMunger.class.getSimpleName();
 
     public static String chooseInput(List<String> options) {
-        Log.d(TAG,"chooseInput:"+options);
         String input = options.get(0);
         if ("south east".equals(input)) {
-            return "southeast";
+            input = "southeast";
         } else if ("go south east".equals(input)) {
-            return "go southeast";
+            input = "go southeast";
         } else if ("no I".equals(input)) {
-            return "north";
+            input = "north";
+        } else if ("why".equals(input)) {
+            input = "west";
         } else if ("wat".equals(input)) {
-            return "wait";
+            input = "wait";
         } else if ("Digg".equals(input)) {
-            return "dig";
+            input = "dig";
         } else if (input.startsWith("Digg ")) {
-            return "dig" + input.substring(4);
+            input = "dig" + input.substring(4);
         } else if (input.startsWith("where the ") || input.startsWith("where a ") || input.startsWith("where an ")) {
-            return "wear" + input.substring(5);
+            input = "wear" + input.substring(5);
         } else if (input.startsWith("but ")) {
-            return "put" + input.substring(3);
+            input = "put" + input.substring(3);
         } else if (input.startsWith("we the ") || input.startsWith("we a ") || input.startsWith("we an ")) {
-            return "read" + input.substring(2);
+            input = "read" + input.substring(2);
         } else if (input.startsWith("going to ")) {
-            return "go in" + input.substring(6);
+            input = "go in" + input.substring(6);
         } else if (input.startsWith("\n")) {
-            return "enter " + input.substring(1);
+            input = "enter " + input.substring(1);
         }
+        Log.d(TAG,"chooseInput:"+options+",result="+input);
         return input;
     }
 
