@@ -1,6 +1,7 @@
 package com.yrek.incant.glk;
 
 import android.content.Context;
+import android.text.Spanned;
 import android.text.SpannableStringBuilder;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
@@ -173,16 +174,16 @@ abstract class Window extends GlkWindow implements Serializable {
     void styleText(SpannableStringBuilder string, int start, int end, int style, Integer foregroundColor, Integer backgroundColor, int linkVal) {
         TextAppearanceSpan span = getSpanForStyle(style);
         if (span != null) {
-            string.setSpan(span, start, end, 0);
+            string.setSpan(span, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (foregroundColor != null) {
-            string.setSpan(new ForegroundColorSpan(foregroundColor | 0xff000000), start, end, 0);
+            string.setSpan(new ForegroundColorSpan(foregroundColor | 0xff000000), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (backgroundColor != null) {
-            string.setSpan(new BackgroundColorSpan(backgroundColor | 0xff000000), start, end, 0);
+            string.setSpan(new BackgroundColorSpan(backgroundColor | 0xff000000), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (linkVal != 0) {
-            string.setSpan(new HyperlinkSpan(linkVal), start, end, 0);
+            string.setSpan(new HyperlinkSpan(linkVal), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 

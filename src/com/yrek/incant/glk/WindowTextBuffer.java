@@ -295,6 +295,7 @@ class WindowTextBuffer extends Window {
         if (text == null) {
             return;
         }
+        Log.d(TAG,"length="+text.length()+",spans="+text.getSpans(0, text.length(), Object.class).length);
         int size = windowSize.width*windowSize.height;
         if (text.length() < 2*size + 1024) {
             return;
