@@ -52,6 +52,7 @@ public class GlkActivity extends Activity {
     private GlkDispatch glkDispatch;
     private Serializable suspendState;
     private transient boolean suspendedDuringInit;
+    private transient boolean suspending;
 
     private View progressBar;
     int progressBarCounter = 0;
@@ -173,6 +174,7 @@ public class GlkActivity extends Activity {
         super.onResume();
         showProgressBar();
         suspendedDuringInit = false;
+        suspending = false;
         main.start(new Runnable() {
             @Override public void run() {
                 try {
@@ -186,7 +188,9 @@ public class GlkActivity extends Activity {
             @Override public void run() {
                 post(new Runnable() {
                     @Override public void run() {
-                        finish();
+                        if (!suspending) {
+                            finish();
+                        }
                     }
                 });
             }
@@ -201,6 +205,7 @@ public class GlkActivity extends Activity {
         Log.d(TAG,"onPause:main.finished()="+main.finished()+",suspendedDuringInit="+suspendedDuringInit);
         super.onPause();
         if (!suspendedDuringInit && !main.finished()) {
+            suspending = true;
             main.requestSuspend();
             pendingArrangeEvent = true;
             suspendState = main.suspend();
