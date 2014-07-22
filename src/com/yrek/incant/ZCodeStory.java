@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Locale;
 import java.util.Vector;
 
 import com.yrek.ifstd.blorb.Blorb;
@@ -390,9 +391,9 @@ class ZCodeStory implements GlkMain {
             sb.append(s);
             String numbers;
             if (flag) {
-                numbers = String.format(" %2d:%02d", a, b);
+                numbers = String.format(Locale.ROOT, " %2d:%02d", a, b);
             } else {
-                numbers = String.format(" %d/%d", a, b);
+                numbers = String.format(Locale.ROOT, " %d/%d", a, b);
             }
             while (sb.length() + numbers.length() < size.width) {
                 sb.append(' ');

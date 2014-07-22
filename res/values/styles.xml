@@ -219,4 +219,8 @@
     <item name="android:textSize">14sp</item>
     <item name="android:textStyle">bold|italic</item>
   </style>
+
+
+  <string name="metric_1x1">X</string>
+  <string name="metric_2x2">XX\nXX</string>
 </resources>

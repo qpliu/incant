@@ -26,4 +26,6 @@
 
   <string name="download_failed">Failed download: %s</string>
   <string name="download_invalid">Invalid download: %s</string>
+
+  <string name="cover_image">Cover image</string>
 </resources>

@@ -15,7 +15,7 @@
        android:layout_height="80dp"
        android:id="@+id/download"
        android:text="@string/download"
-       android:textSize="20dp"
+       android:textSize="20sp"
        android:gravity="center"
        />
     <ProgressBar
@@ -29,7 +29,7 @@
        android:layout_height="80dp"
        android:id="@+id/play"
        android:text="@string/play"
-       android:textSize="15dp"
+       android:textSize="15sp"
        android:gravity="center"
        />
     <ImageView
@@ -37,6 +37,7 @@
        android:layout_height="80dp"
        android:id="@+id/cover"
        android:scaleType="centerInside"
+       android:contentDescription="@string/cover_image"
        />
   </RelativeLayout>
   <LinearLayout

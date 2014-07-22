@@ -10,7 +10,7 @@
      android:layout_height="wrap_content" 
      android:id="@+id/onexone"
      android:typeface="monospace"
-     android:text="X"
+     android:text="@string/metric_1x1"
      android:alpha="0"
      />
   <TextView  
@@ -18,7 +18,7 @@
      android:layout_height="wrap_content" 
      android:id="@+id/twoxtwo"
      android:typeface="monospace"
-     android:text="XX\nXX"
+     android:text="@string/metric_2x2"
      android:alpha="0"
      />
   <FrameLayout  
