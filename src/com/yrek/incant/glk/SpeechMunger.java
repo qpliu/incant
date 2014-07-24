@@ -35,6 +35,8 @@ public class SpeechMunger {
             input = "go in" + input.substring(6);
         } else if (input.startsWith("\n")) {
             input = "enter " + input.substring(1);
+        } else if (input.startsWith(".")) {
+            input = "point " + input.substring(1);
         }
         Log.d(TAG,"chooseInput:"+options+",result="+input);
         return input;
