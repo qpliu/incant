@@ -262,7 +262,7 @@ public class Input {
                                     }
                                 }
                             });
-                        } else if ("enter ".equals(text)) {
+                        } else if ("enter ".equals(text) || "enter".equals(text)) {
                             inputLineResults = editText.getText().toString();
                             inputCharResults = SpeechMunger.chooseCharacterInput(inputLineResults);
                             if (inputLineResults.length () > 0) {
