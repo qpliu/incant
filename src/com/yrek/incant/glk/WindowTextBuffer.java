@@ -14,6 +14,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ScrollView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -43,6 +44,7 @@ class WindowTextBuffer extends Window {
     private boolean hyperlinkEventRequested = false;
     private int hyperlinkEventVal = 0;
     private Integer backgroundColor = null;
+    private boolean midparagraph = false;
 
     WindowTextBuffer(int rock, GlkActivity activity) {
         super(rock, activity);
@@ -62,35 +64,57 @@ class WindowTextBuffer extends Window {
                 }
                 return false;
             }
+
+            TextView tappedTextView = null;
+            int tappedOffset = 0;
+            private void locateTap(MotionEvent e) {
+                LinearLayout linearLayout = (LinearLayout) ((ScrollView) view).getChildAt(0);
+                tappedTextView = null;
+                int y = (int) e.getY() + scrollPosition[0];
+                for (int i = 0; i < linearLayout.getChildCount(); i++) {
+                    TextView textView = (TextView) linearLayout.getChildAt(i);
+                    if (textView.getTop() <= y && textView.getBottom() >= y) {
+                        tappedTextView = textView;
+                        tappedOffset = textView.getOffsetForPosition(e.getX(), y - textView.getTop());
+                        return;
+                    }
+                }
+            }
+
             @Override public boolean onDoubleTap(MotionEvent e) {
                 Log.d(TAG,"onDoubleTap:x="+e.getX()+",y="+e.getY()+","+(e.getY()+scrollPosition[0]));
-                TextView textView = (TextView) ((ScrollView) view).getChildAt(0);
-                int offset = textView.getOffsetForPosition(e.getX(), e.getY() + scrollPosition[0]);
-                CharSequence text = textView.getText();
-                int start = offset;
+                locateTap(e);
+                if (tappedTextView == null) {
+                    return false;
+                }
+                CharSequence text = tappedTextView.getText();
+                int start = tappedOffset;
                 while (start-1 > 0 && Character.isLetterOrDigit(text.charAt(start-1))) {
                     start--;
                 }
-                int end = offset;
+                int end = tappedOffset;
                 while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) {
                     end++;
                 }
-                Log.d(TAG,"offset="+offset+","+start+"-"+end+":"+text.subSequence(start, end));
+                Log.d(TAG,"tappedOffset="+tappedOffset+","+start+"-"+end+":"+text.subSequence(start, end));
                 activity.input.pasteInput(new StringBuilder().append(text.subSequence(start, end)).append(' '));
                 return false;
             }
+
             @Override public boolean onSingleTapConfirmed(MotionEvent e) {
                 Log.d(TAG,"onSingleTapConfirmed");
                 if (hyperlinkEventRequested) {
-                    TextView textView = (TextView) ((ScrollView) view).getChildAt(0);
-                    Editable editable = textView.getEditableText();
+                    locateTap(e);
+                    if (tappedTextView == null) {
+                        return false;
+                    }
+                    Editable editable = tappedTextView.getEditableText();
                     if (editable != null) {
-                        int offset = textView.getOffsetForPosition(e.getX(), e.getY() + scrollPosition[0]);
-                        HyperlinkSpan[] spans = editable.getSpans(offset, offset, HyperlinkSpan.class);
-                        Log.d(TAG,"onSingleTapConfirmed:offset="+offset+",spans="+spans);
+                        HyperlinkSpan[] spans = editable.getSpans(tappedOffset, tappedOffset, HyperlinkSpan.class);
+                        Log.d(TAG,"onSingleTapConfirmed:offset="+tappedOffset+",spans="+spans);
                         if (spans != null && spans.length > 0) {
                             hyperlinkEventVal = spans[0].linkVal;
-                            Log.d(TAG,"onSingleTapConfirmed:offset="+offset+",spans="+spans+",hyperlinkEventVal="+hyperlinkEventVal);
+                            Log.d(TAG,"onSingleTapConfirmed:offset="+tappedOffset+",spans="+spans+",hyperlinkEventVal="+hyperlinkEventVal);
                         }
                         activity.input.cancelInput();
                         return true;
@@ -110,10 +134,10 @@ class WindowTextBuffer extends Window {
                 scrollPosition[0] = top;
             }
         };
-        TextView textView = new TextView(context);
-        scrollView.addView(textView);
+        LinearLayout linearLayout = new LinearLayout(context);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        scrollView.addView(linearLayout);
         if (backgroundColor != null) {
-            textView.setBackgroundColor(0xff000000 | backgroundColor);
             scrollView.setBackgroundColor(0xff000000 | backgroundColor);
         }
         return scrollView;
@@ -192,9 +216,20 @@ class WindowTextBuffer extends Window {
             return false;
         }
         activity.hideProgressBar();
-        final ScrollView scrollView = (ScrollView) view;
-        TextView textView = (TextView) scrollView.getChildAt(0);
-        truncateText(textView.getEditableText(), getSize());
+        LinearLayout linearLayout = (LinearLayout) ((ScrollView) view).getChildAt(0);
+        TextView textView;
+        if (midparagraph) {
+            textView = (TextView) linearLayout.getChildAt(linearLayout.getChildCount()-1);
+        } else {
+            textView = new TextView(view.getContext());
+            linearLayout.addView(textView);
+            if (backgroundColor != null) {
+                textView.setBackgroundColor(0xff000000 | backgroundColor);
+            }
+            if (linearLayout.getChildCount() > 50) {
+                linearLayout.removeViewAt(0);
+            }
+        }
         int currentStyle = GlkStream.StyleNormal;
         int currentLinkVal = 0;
         SpannableStringBuilder screenOutput = new SpannableStringBuilder();
@@ -212,6 +247,8 @@ class WindowTextBuffer extends Window {
                     break;
                 }
                 textView.setText("");
+                linearLayout.removeAllViews();
+                linearLayout.addView(textView);
                 update.clear = false;
             }
             if (update.flowBreak) {
@@ -271,11 +308,15 @@ class WindowTextBuffer extends Window {
             }
             updates.removeFirst();
         }
+        midparagraph = screenOutput.length() == 0 || endParagraphState < 2;
+        if (screenOutput.length() > 0 && screenOutput.charAt(screenOutput.length()-1) == '\n') {
+            screenOutput.delete(screenOutput.length()-1,screenOutput.length());
+        }
         if (screenOutput.length() > 0) {
             textView.append(screenOutput);
             post(new Runnable() {
                 @Override public void run() {
-                    scrollView.fullScroll(View.FOCUS_DOWN);
+                    ((ScrollView) view).fullScroll(View.FOCUS_DOWN);
                 }
             });
         }
@@ -289,29 +330,6 @@ class WindowTextBuffer extends Window {
             activity.speech.speak(SpeechMunger.fixOutput(speechOutput).toString(), continueOutput);
             return true;
         }
-    }
-
-    private void truncateText(Editable text, GlkWindowSize windowSize) {
-        if (text == null) {
-            return;
-        }
-        Log.d(TAG,"length="+text.length()+",spans="+text.getSpans(0, text.length(), Object.class).length);
-        int size = windowSize.width*windowSize.height;
-        if (text.length() < 2*size + 1024) {
-            return;
-        }
-        int point = Math.max(0, text.length() - 2*size - 2048);
-        for (int i = text.length() - 2*size - 1024; i >= point; i--) {
-            if (text.charAt(i) == '\n') {
-                point = i;
-            }
-        }
-        for (Object obj : text.getSpans(0, point, Object.class)) {
-            if (text.getSpanEnd(obj) <= point) {
-                text.removeSpan(obj);
-            }
-        }
-        text.delete(0, point);
     }
 
     @Override
