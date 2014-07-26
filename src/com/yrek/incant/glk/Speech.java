@@ -16,6 +16,7 @@ public class Speech {
     private final Button skipButton;
 
     private TextToSpeech textToSpeech;
+    private boolean speechStarted = false;
     private boolean speechCanceled = false;
     private boolean ready = false;
     private Runnable onDone = null;
@@ -66,6 +67,7 @@ public class Speech {
                 return;
             }
             this.onDone = onDone;
+            speechStarted = false;
         }
         skipButton.post(showSkipButton);
         HashMap<String,String> params = new HashMap<String,String>();
@@ -116,6 +118,9 @@ public class Speech {
 
         @Override
         public void onStart(String utteranceId) {
+            synchronized(this) {
+                speechStarted = true;
+            }
         }
     };
 
@@ -134,7 +139,7 @@ public class Speech {
     private final View.OnClickListener skipButtonOnClickListener = new View.OnClickListener() {
         @Override public void onClick(View v) {
             synchronized (utteranceProgressListener) {
-                if (onDone == null) {
+                if (onDone == null || !speechStarted) {
                     return;
                 }
                 speechCanceled = true;
