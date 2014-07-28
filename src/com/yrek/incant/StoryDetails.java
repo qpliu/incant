@@ -3,6 +3,7 @@ package com.yrek.incant;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
@@ -173,6 +174,17 @@ public class StoryDetails extends Activity {
                     ((TextView) findViewById(R.id.save_text)).setText(Incant.getTimeString(StoryDetails.this, R.string.saved_recently, R.string.saved_at, story.getSaveFile(StoryDetails.this).lastModified()));
                 }
                 findViewById(R.id.download_text).setVisibility(View.GONE);
+            }
+            final String ifid = story.getIFID(StoryDetails.this);
+            if (ifid == null) {
+                findViewById(R.id.ifdb_container).setVisibility(View.GONE);
+            } else {
+                findViewById(R.id.ifdb_container).setVisibility(View.VISIBLE);
+                findViewById(R.id.ifdb).setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(StoryDetails.this.getString(R.string.ifdb_viewgame, Uri.encode(ifid)))));
+                    }
+                });
             }
         }
     };

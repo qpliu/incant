@@ -107,6 +107,21 @@
 	   android:ellipsize="marquee"
 	   />
       </TableRow>
+      <TableRow
+	 android:id="@+id/ifdb_container"
+	 >
+	<Button
+	   android:layout_column="1"
+	   android:layout_span="1"
+	   android:text="@string/ifdb_label"
+	   android:id="@+id/ifdb"
+	   />
+	<TextView
+	   android:layout_column="2"
+	   android:layout_span="1"
+	   android:text="@string/ifdb_text"
+	   />
+      </TableRow>
     </TableLayout>
     <TextView
        android:layout_width="match_parent"

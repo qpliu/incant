@@ -28,4 +28,8 @@
   <string name="download_invalid">Invalid download: %s</string>
 
   <string name="cover_image">Cover image</string>
+
+  <string name="ifdb_viewgame">http://ifdb.tads.org/viewgame?ifid=%s</string>
+  <string name="ifdb_label">Go to IFDB</string>
+  <string name="ifdb_text">View this story in the Interactive Fiction Database</string>
 </resources>

@@ -66,6 +66,11 @@ class Story implements Serializable {
         return metadata;
     }
 
+    public String getIFID(Context context) {
+        Metadata m = getMetadata(context);
+        return m != null ? m.ifid : null;
+    }
+
     public String getAuthor(Context context) {
         Metadata m = getMetadata(context);
         return m != null ? m.author : author;
@@ -401,6 +406,7 @@ class Story implements Serializable {
     }
 
     private class Metadata implements XMLScraper.Handler {
+        String ifid;
         String author;
         String headline;
         String description;
@@ -426,6 +432,8 @@ class Story implements Serializable {
                 coverpicture = value;
             } else if ("ifindex/story/glulx/coverpicture".equals(path)) {
                 coverpicture = value;
+            } else if ("ifindex/story/identification/ifid".equals(path)) {
+                ifid = value;
             }
         }
     }
