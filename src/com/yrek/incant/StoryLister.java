@@ -143,7 +143,8 @@ class StoryLister {
                     String author = in.readUTF();
                     String url = in.readUTF();
                     String zipFile = in.readUTF();
-                    addStory(new Story(name, author.length() == 0 ? null : author, null, null, new URL(url), zipFile.length() == 0 ? null : zipFile, null), stories);
+                    String imageURL = in.readUTF();
+                    addStory(new Story(name, author.length() == 0 ? null : author, null, null, new URL(url), zipFile.length() == 0 ? null : zipFile, imageURL.length() == 0 ? null : new URL(imageURL)), stories);
                 }
             } catch (FileNotFoundException e) {
             } catch (EOFException e) {
@@ -195,22 +196,21 @@ class StoryLister {
             }
         }
 
-        void writeStory(DataOutputStream out, String name, String author, String url, String zipFile) throws IOException {
+        void writeStory(DataOutputStream out, String name, String author, String url, String zipFile, String imageURL) throws IOException {
             out.writeUTF(name);
             out.writeUTF(author == null ? "" : author);
             out.writeUTF(url);
             out.writeUTF(zipFile == null ? "" : zipFile);
+            out.writeUTF(imageURL == null ? "" : imageURL);
         }
     }
 
     private class IFDBScraper extends Scraper {
         private final String[] scrapeURLs;
-        private final String downloadInfoURL;
 
         IFDBScraper(Context context) {
             super(context, "ifdb", context.getResources().getInteger(R.integer.ifdb_cache_timeout));
             this.scrapeURLs = context.getResources().getStringArray(R.array.ifdb_scrape_urls);
-            this.downloadInfoURL = context.getString(R.string.ifdb_download_info_url);
         }
 
         private final Pattern listPattern = Pattern.compile("\\<a href=\"viewgame\\?id=([a-zA-Z0-9]+)\"\\>");
@@ -218,6 +218,7 @@ class StoryLister {
         @Override
         void scrape(final DataOutputStream out) throws IOException {
             final HashSet<String> storyIDs = new HashSet<String>();
+            final String[] currentStoryID = new String[1];
             PageScraper listScraper = new PageScraper() {
                 @Override public void scrape(String line) throws IOException {
                     Matcher m = listPattern.matcher(line);
@@ -251,9 +252,9 @@ class StoryLister {
                         try {
                             if (name == null) {
                             } else if (url != null && url.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
-                                writeStory(out, name, author, url, null);
+                                writeStory(out, name, author, url, null, context.getString(R.string.ifdb_cover_image_url, currentStoryID[0]));
                             } else if (zipFile != null && zipFile.matches(".*\\.(z[1-8]|zblorb|ulx|blb|gblorb)")) {
-                                writeStory(out, name, author, extraURL, zipFile);
+                                writeStory(out, name, author, extraURL, zipFile, context.getString(R.string.ifdb_cover_image_url, currentStoryID[0]));
                             }
                         } catch (Exception e) {
                             Log.wtf(TAG,e);
@@ -289,7 +290,8 @@ class StoryLister {
                 });
                 for (String storyID : storyIDs) {
                     try {
-                        xmlScraper.scrape(downloadInfoURL+storyID);
+                        currentStoryID[0] = storyID;
+                        xmlScraper.scrape(context.getString(R.string.ifdb_download_info_url,storyID));
                     } catch (Exception e) {
                         Log.wtf(TAG,e);
                     }
@@ -318,7 +320,7 @@ class StoryLister {
                 @Override public void scrape(String line) throws IOException {
                     Matcher m = pattern.matcher(line);
                     while (m.find()) {
-                        writeStory(out, m.group(5), "", downloadURL + m.group(2), "");
+                        writeStory(out, m.group(5), "", downloadURL + m.group(2), "", null);
                     }
                 }
             });

@@ -107,6 +107,7 @@
     <item>http://ifdb.tads.org/random?t=high-rated</item>
     <item>http://ifdb.tads.org/random?t=recent</item>
   </string-array>
-  <string name="ifdb_download_info_url">http://ifdb.tads.org/dladviser?xml&amp;os=MacOSX&amp;id=</string>
+  <string name="ifdb_download_info_url">http://ifdb.tads.org/dladviser?xml&amp;os=MacOSX&amp;id=%s</string>
+  <string name="ifdb_cover_image_url">http://ifdb.tads.org/viewgame?coverart&amp;id=%s&amp;thumbnail=300x300</string>
   <integer name="ifdb_cache_timeout">60000</integer>
 </resources>
