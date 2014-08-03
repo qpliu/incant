@@ -21,6 +21,8 @@ public class SpeechMunger {
             input = "west";
         } else if ("wat".equals(input)) {
             input = "wait";
+        } else if (input.startsWith("exam in ")) {
+            input = "examine" + input.substring(7);
         } else if ("Digg".equals(input)) {
             input = "dig";
         } else if (input.startsWith("Digg ")) {
