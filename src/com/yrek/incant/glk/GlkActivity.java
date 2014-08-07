@@ -334,7 +334,7 @@ public class GlkActivity extends Activity {
             case GlkGestalt.LineInput:
                 return value >= 32 && value < 127 ? 1 : 0;
             case GlkGestalt.CharOutput:
-                return 1;
+                return gestaltExt(selector, value, null);
             case GlkGestalt.MouseInput:
                 return 1;
             case GlkGestalt.Timer:
@@ -386,14 +386,20 @@ public class GlkActivity extends Activity {
             switch (selector) {
             case GlkGestalt.CharOutput:
                 if (value < 256 && (value == 10 || !Character.isISOControl(value))) {
-                    array.setIntElement(1);
+                    if (array != null) {
+                        array.setIntElement(1);
+                    }
                     return GlkGestalt.CharOutput_ExactPrint;
                 } else {
                     if (Character.isValidCodePoint(value)) {
-                        array.setIntElement(1);
+                        if (array != null) {
+                            array.setIntElement(1);
+                        }
                         return GlkGestalt.CharOutput_ApproxPrint;
                     } else {
-                        array.setIntElement(0);
+                        if (array != null) {
+                            array.setIntElement(0);
+                        }
                         return GlkGestalt.CharOutput_CannotPrint;
                     }
                 }
