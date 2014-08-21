@@ -144,6 +144,18 @@ public class StoryDetails extends Activity {
                         startActivity(intent);
                     }
                 });
+                findViewById(R.id.play).setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override public boolean onLongClick(View v) {
+                        Intent intent = new Intent(StoryDetails.this, GlkActivity.class);
+                        if (story.isZcode(StoryDetails.this)) {
+                            intent.putExtra(GlkActivity.GLK_MAIN, new ZaxStory(story, story.getName(StoryDetails.this)));
+                        } else {
+                            intent.putExtra(GlkActivity.GLK_MAIN, new GlulxStory(story, story.getName(StoryDetails.this)));
+                        }
+                        startActivity(intent);
+                        return true;
+                    }
+                });
                 ((TextView) findViewById(R.id.play_text)).setText(story.isZcode(StoryDetails.this) ? R.string.play_zcode : R.string.play_glulx);
                 if (story.getCoverImageFile(StoryDetails.this).exists()) {
                     findViewById(R.id.cover).setVisibility(View.VISIBLE);
