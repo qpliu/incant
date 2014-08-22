@@ -6,8 +6,6 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Locale;
-import java.util.Vector;
 
 import com.yrek.ifstd.blorb.Blorb;
 import com.yrek.ifstd.glk.GlkByteArray;
@@ -18,12 +16,8 @@ import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.GlkWindowArrangement;
 import com.yrek.ifstd.glk.GlkWindowSize;
 import com.yrek.ifstd.glulx.Glulx;
+import com.yrek.ifstd.zcode.ZCode;
 import com.yrek.incant.glk.GlkMain;
-
-import com.zaxsoft.zmachine.Dimension;
-import com.zaxsoft.zmachine.Point;
-import com.zaxsoft.zmachine.ZCPU;
-import com.zaxsoft.zmachine.ZUserInterface;
 
 class ZCodeStory implements GlkMain {
     private static final long serialVersionUID = 0L;
@@ -34,11 +28,8 @@ class ZCodeStory implements GlkMain {
     int textBackgroundColor;
     int textInputColor;
     transient Thread thread = null;
-    transient ZCPU zcpu = null;
+    transient ZCode zcode;
     transient GlkDispatch glk = null;
-    transient File zcodeFile = null;
-    transient File saveFile = null;
-    transient boolean suspendRequested = false;
 
     ZCodeStory(Story story, String name) {
         this.story = story;
@@ -53,29 +44,41 @@ class ZCodeStory implements GlkMain {
     @Override
     public void init(Context context, GlkDispatch glk, Serializable suspendState) {
         this.glk = glk;
-        zcodeFile = story.getZcodeFile(context);
-        saveFile = story.getSaveFile(context);
         textForegroundColor = context.getResources().getColor(R.color.text);
         textBackgroundColor = context.getResources().getColor(R.color.background);
         textInputColor = context.getResources().getColor(R.color.input_text);
-        //... restore from suspendState unimplemented
-        zcpu = new ZCPU(new ZUI());
+        if (suspendState != null) {
+            this.zcode = (ZCode) suspendState;
+            try {
+                this.zcode.resume(glk);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                this.zcode = new ZCode(story.getZcodeFile(context), glk);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //... zcode.initColors(textForegroundColor, textBackgroundColor, textInputColor);
+        }
     }
 
     @Override
     public void start(final Runnable waitForInit, final Runnable onFinished) {
         thread = new Thread("glk") {
             @Override public void run() {
+                waitForInit.run();
                 try {
-                    waitForInit.run();
-                    zcpu.initialize(zcodeFile.getPath());
-                    glk.glk.main(zcpu);
+                    glk.glk.main(zcode);
+                    synchronized (ZCodeStory.this) {
+                        thread = null;
+                        ZCodeStory.this.notifyAll();
+                    }
+                    onFinished.run();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                } catch (ZQuitException e) {
                 }
-                thread = null;
-                onFinished.run();
             }
         };
         thread.start();
@@ -83,27 +86,39 @@ class ZCodeStory implements GlkMain {
 
     @Override
     public void requestSuspend() {
-        suspendRequested = true;
-        //... restore from suspendState unimplemented
+        try {
+            zcode.suspend(false);
+        } catch (InterruptedException e) {
+            Log.wtf(TAG,e);
+        }
     }
 
     @Override
     public Serializable suspend() {
-        if (thread != null) {
-            thread.interrupt();
+        try {
+            zcode.suspend(false);
+            synchronized (this) {
+                if (thread != null) {
+                    thread.interrupt();
+                    while (thread != null) {
+                        wait();
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Log.wtf(TAG,e);
         }
-        //... restore from suspendState unimplemented
-        return null;
+        return zcode;
     }
 
     @Override
     public boolean suspendRequested() {
-        return suspendRequested;
+        return zcode.suspending();
     }
 
     @Override
     public boolean finished() {
-        return thread == null;
+        return !zcode.suspended() && thread == null;
     }
 
     @Override
@@ -256,397 +271,6 @@ class ZCodeStory implements GlkMain {
             return textForegroundColor;
         default:
             return textBackgroundColor;
-        }
-    }
-
-    private class ZQuitException extends RuntimeException {}
-
-    private class ZUI implements ZUserInterface {
-        private GlkWindow textBuffer;
-        private GlkWindow statusWindow;
-        private int zversion;
-        private GlkWindow currentWindow;
-
-        @Override
-        public void fatal(String errmsg) {
-            Log.wtf(TAG,"fatal:errmsg="+errmsg);
-            throw new ZQuitException();
-        }
-
-        @Override
-        public void initialize(int ver) {
-            Log.d(TAG,"initialize:ver="+ver);
-            zversion = ver;
-            textBuffer = glk.glk.windowOpen(null, 0, 0, GlkWindow.TypeTextBuffer, 0);
-            currentWindow = textBuffer;
-            statusWindow = glk.glk.windowOpen(textBuffer, GlkWindowArrangement.MethodAbove | GlkWindowArrangement.MethodFixed, 0, GlkWindow.TypeTextGrid, 0);
-            if (ver <= 3) {
-                statusWindow.getParent().setArrangement(GlkWindowArrangement.MethodAbove | GlkWindowArrangement.MethodFixed, 1, statusWindow);
-                statusWindow.getStream().setStyle(GlkStream.StyleAlert);
-            }
-            glk.glk.requestTimerEvents(1);
-            try {
-                glk.glk.select();
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-            glk.glk.requestTimerEvents(0);
-        }
-
-        @Override
-        public void setTerminatingCharacters(Vector chars) {
-        }
-
-        @Override
-        public boolean hasStatusLine() {
-            return true;
-        }
-
-        @Override
-        public boolean hasUpperWindow() {
-            return false;
-        }
-
-        @Override
-        public boolean defaultFontProportional() {
-            return true;
-        }
-
-        @Override
-        public boolean hasColors() {
-            return false;
-        }
-
-        @Override
-        public boolean hasBoldface() {
-            return true;
-        }
-
-        @Override
-        public boolean hasItalic() {
-            return true;
-        }
-
-        @Override
-        public boolean hasFixedWidth() {
-            return true;
-        }
-
-        @Override
-        public boolean hasTimedInput() {
-            return false;
-        }
-
-        @Override
-        public Dimension getScreenCharacters() {
-            GlkWindowSize size = textBuffer.getSize();
-            GlkWindowSize statusSize = statusWindow.getSize();
-            return new Dimension(size.width, size.height + statusSize.height);
-        }
-
-        @Override
-        public Dimension getScreenUnits() {
-            GlkWindowSize size = textBuffer.getSize();
-            GlkWindowSize statusSize = statusWindow.getSize();
-            return new Dimension(size.width, size.height + statusSize.height);
-        }
-
-        @Override
-        public Dimension getFontSize() {
-            return new Dimension(1, 1);
-        }
-
-        @Override
-        public Dimension getWindowSize(int window) {
-            GlkWindowSize size;
-            if (window == 0) {
-                size = textBuffer.getSize();
-            } else {
-                size = statusWindow.getSize();
-            }
-            return new Dimension(size.width, size.height);
-        }
-
-        @Override
-        public int getDefaultForeground() {
-            return 1;
-        }
-
-        @Override
-        public int getDefaultBackground() {
-            return 0;
-        }
-
-        @Override
-        public Point getCursorPosition() {
-            return new Point(currentWindow.getCursorX()+1, currentWindow.getCursorY()+1);
-        }
-
-        @Override
-        public void showStatusBar(String s,int a,int b,boolean flag) {
-            Log.d(TAG,"showStatusBar:"+s+","+a+","+b);
-            GlkWindowSize size = statusWindow.getSize();
-            StringBuilder sb = new StringBuilder();
-            sb.append(s);
-            String numbers;
-            if (flag) {
-                numbers = String.format(Locale.ROOT, " %2d:%02d", a, b);
-            } else {
-                numbers = String.format(Locale.ROOT, " %d/%d", a, b);
-            }
-            while (sb.length() + numbers.length() < size.width) {
-                sb.append(' ');
-            }
-            if (numbers.length() > size.width) {
-                sb.setLength(size.width);
-            } else if (sb.length() > size.width - numbers.length()) {
-                sb.setLength(size.width - numbers.length());
-                sb.append(numbers);
-            } else {
-                sb.append(numbers);
-            }
-            try {
-                statusWindow.clear();
-                statusWindow.getStream().setStyle(GlkStream.StyleAlert);
-                statusWindow.getStream().putString(sb);
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void splitScreen(int lines) {
-            textBuffer.getParent().setArrangement(GlkWindowArrangement.MethodAbove | GlkWindowArrangement.MethodFixed, lines, statusWindow);
-        }
-
-        @Override
-        public void setCurrentWindow(int window) {
-            if (window == 0) {
-                currentWindow = textBuffer;
-            } else {
-                currentWindow = statusWindow;
-            }
-        }
-
-        @Override
-        public void setCursorPosition(int newx,int newy) {
-            Log.d(TAG,"setCursorPosition:x="+newx+",y="+newy);
-            GlkWindowSize size = currentWindow.getSize();
-            if (newx < 32768) {
-                newx = newx - 1;
-            } else {
-                newx = size.width + newx - 65536;
-            }
-            if (newy < 32768) {
-                newy = newy - 1;
-            } else {
-                newy = size.height + newy - 65536;
-            }
-            try {
-                currentWindow.moveCursor(newx, newy);
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void setColor(int fg,int bg) {
-        }
-
-        @Override
-        public void setTextStyle(int style) {
-            Log.d(TAG,"setTextStyle:style="+style);
-            // 0: roman
-            // 1: reverse
-            // 2: bold
-            // 4: italic
-            // 8: fixed
-            switch (style) {
-            case 0: style = GlkStream.StyleNormal; break;
-            case 1: style = GlkStream.StyleAlert; break;
-            case 2: style = GlkStream.StyleHeader; break;
-            case 3: style = GlkStream.StyleUser1; break;
-            case 4: style = GlkStream.StyleEmphasized; break;
-            case 5: style = GlkStream.StyleBlockQuote; break;
-            case 6: style = GlkStream.StyleSubheader; break;
-            case 7: style = GlkStream.StyleUser2; break;
-            case 8: case 10: case 12: case 14:
-                style = GlkStream.StylePreformatted;
-                break;
-            case 9: case 11: case 13: case 15:
-                style = GlkStream.StyleNote;
-                break;
-            default:
-                style = GlkStream.StyleNormal;
-                break;
-            }
-            textBuffer.getStream().setStyle(style);
-            statusWindow.getStream().setStyle(style);
-        }
-
-        @Override
-        public void setFont(int font) {
-        }
-
-        private final char[] lineEventBuffer = new char[256];
-        private final GlkByteArray lineEventByteArray = new GlkByteArray() {
-            @Override
-            public int getByteElement() {
-                return lineEventBuffer[0];
-            }
-
-            @Override
-            public void setByteElement(int element) {
-                lineEventBuffer[0] = (char) (element&255);
-            }
-
-            @Override
-            public int getByteElementAt(int index) {
-                return lineEventBuffer[index]&255;
-            }
-
-            @Override
-            public void setByteElementAt(int index, int element) {
-                lineEventBuffer[index] = (char) (element&255);
-            }
-
-            @Override
-            public int getReadArrayIndex() {
-                return 0;
-            }
-
-            @Override
-            public int setReadArrayIndex(int index) {
-                return 0;
-            }
-
-            @Override
-            public int getWriteArrayIndex() {
-                return 0;
-            }
-
-            @Override
-            public int setWriteArrayIndex(int index) {
-                return 0;
-            }
-
-            @Override
-            public int getArrayLength() {
-                return lineEventBuffer.length;
-            }
-
-            @Override
-            public void setArrayLength(int length) {
-            }
-        };
-
-        @Override
-        public int readLine(StringBuffer sb,int time) {
-            Log.d(TAG,"readLine");
-            textBuffer.requestLineEvent(lineEventByteArray, lineEventByteArray.getArrayLength());
-            try {
-                for (;;) {
-                    GlkEvent event = glk.glk.select();
-                    if (suspendRequested) {
-                        throw new ZQuitException();
-                    }
-                    if (event.type == GlkEvent.TypeLineInput) {
-                        sb.append(lineEventBuffer, 0, event.val1);
-                        return 10;
-                    }
-                }
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public int readChar(int time) {
-            Log.d(TAG,"readChar");
-            textBuffer.requestCharEvent();
-            try {
-                for (;;) {
-                    GlkEvent event = glk.glk.select();
-                    if (suspendRequested) {
-                        throw new ZQuitException();
-                    }
-                    if (event.type == GlkEvent.TypeCharInput) {
-                        return event.val1;
-                    }
-                }
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void showString(String s) {
-            Log.d(TAG,"showString:s="+s);
-            try {
-                currentWindow.getStream().putString(s);
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void scrollWindow(int lines) {
-            Log.d(TAG,"scrollWindow:lines="+lines);
-            try {
-                for (int i = 0; i < lines; i++) {
-                    currentWindow.getStream().putChar(10);
-                }
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void eraseLine(int s) {
-            Log.d(TAG,"eraseLine:s="+s);
-            try {
-                GlkWindowSize size = currentWindow.getSize();
-                currentWindow.moveCursor(0, s-1);
-                for (int i = 0; i < size.width; i++) {
-                    currentWindow.getStream().putChar(' ');
-                }
-                currentWindow.moveCursor(0, s-1);
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void eraseWindow(int window) {
-            Log.d(TAG,"eraseWindow:window="+window);
-            try {
-                currentWindow.clear();
-            } catch (IOException e) {
-                Log.wtf(TAG,e);
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String getFilename(String title,String suggested,boolean saveFlag) {
-            return saveFile.getPath();
-        }
-
-        @Override
-        public void quit() {
-            glk.glk.exit();
-        }
-
-        @Override
-        public void restart() {
         }
     }
 }

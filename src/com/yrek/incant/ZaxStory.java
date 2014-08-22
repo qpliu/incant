@@ -17,7 +17,6 @@ import com.yrek.ifstd.glk.GlkStream;
 import com.yrek.ifstd.glk.GlkWindow;
 import com.yrek.ifstd.glk.GlkWindowArrangement;
 import com.yrek.ifstd.glk.GlkWindowSize;
-import com.yrek.ifstd.glulx.Glulx;
 import com.yrek.incant.glk.GlkMain;
 
 import com.zaxsoft.zmachine.Dimension;
