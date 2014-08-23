@@ -60,7 +60,6 @@ class ZCodeStory implements GlkMain {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            //... zcode.initColors(textForegroundColor, textBackgroundColor, textInputColor);
         }
     }
 
@@ -70,6 +69,7 @@ class ZCodeStory implements GlkMain {
             @Override public void run() {
                 waitForInit.run();
                 try {
+                    zcode.initGlk(textForegroundColor, textBackgroundColor);
                     glk.glk.main(zcode);
                     synchronized (ZCodeStory.this) {
                         thread = null;
