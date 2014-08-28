@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Space;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,6 +54,10 @@ public class GlkActivity extends Activity {
     private Serializable suspendState;
     private transient boolean suspendedDuringInit;
     private transient boolean suspending;
+
+    private static final boolean PROFILER = false;
+    private transient boolean profilerFlag = false;
+    private transient long profilerTime = 0L;
 
     private View progressBar;
     int progressBarCounter = 0;
@@ -660,6 +665,17 @@ public class GlkActivity extends Activity {
 
         @Override
         public GlkEvent select() {
+            if (PROFILER) {
+                if (profilerFlag) {
+                    profilerFlag = false;
+                    final long dt = System.currentTimeMillis() - profilerTime;
+                    post(new Runnable() {
+                        @Override public void run() {
+                            Toast.makeText(GlkActivity.this, String.valueOf(dt), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            }
             synchronized (ioLock) {
                 outputPending = true;
                 frameLayout.post(handlePendingOutput);
@@ -715,8 +731,16 @@ public class GlkActivity extends Activity {
             for (;;) {
                 GlkEvent event;
                 try {
+                    long profileT = 0;
+                    if (PROFILER) {
+                        profileT = System.currentTimeMillis();
+                    }
                     event = activityState.rootWindow.getEvent(0L, true);
                     if (event != null) {
+                        if (PROFILER) {
+                            profilerTime = System.currentTimeMillis();
+                            profilerFlag = profilerTime - profileT > 500;
+                        }
                         return event;
                     }
                     event = activityState.rootWindow.getEvent(timeToNextTimerEvent(), false);
