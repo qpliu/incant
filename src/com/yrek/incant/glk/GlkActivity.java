@@ -731,20 +731,20 @@ public class GlkActivity extends Activity {
             for (;;) {
                 GlkEvent event;
                 try {
+                    event = activityState.rootWindow.getEvent(0L, true);
+                    if (event != null) {
+                        return event;
+                    }
                     long profileT = 0;
                     if (PROFILER) {
                         profileT = System.currentTimeMillis();
                     }
-                    event = activityState.rootWindow.getEvent(0L, true);
+                    event = activityState.rootWindow.getEvent(timeToNextTimerEvent(), false);
                     if (event != null) {
                         if (PROFILER) {
                             profilerTime = System.currentTimeMillis();
                             profilerFlag = profilerTime - profileT > 500;
                         }
-                        return event;
-                    }
-                    event = activityState.rootWindow.getEvent(timeToNextTimerEvent(), false);
-                    if (event != null) {
                         return event;
                     }
                     long timeToNextTimerEvent = timeToNextTimerEvent();
